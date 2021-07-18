@@ -1,0 +1,23 @@
+{
+  "name": "blacklist-word-replacer",
+  "version": "0.1.0",
+  "description": "",
+  "main": "",
+  "scripts": {
+    "run": "npx tsc && node dist/index.js"
+  },
+  "keywords": [],
+  "author": "mobyr",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/dotenv": "^8.2.0",
+    "@types/node": "^16.3.3",
+    "@types/ws": "^7.4.6",
+    "ts-node": "^10.1.0",
+    "typescript": "^4.3.5"
+  },
+  "dependencies": {
+    "discord.js": "^12.5.3",
+    "dotenv": "^10.0.0"
+  }
+}
