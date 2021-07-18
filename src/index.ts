@@ -111,7 +111,7 @@ function getContent(commands: string[], index: number) {
 }
 
 client.on("ready", () => {
-    if (!fs.existsSync("./maps")) fs.mkdirSync("./maps");
+    if (!fs.existsSync(resolve(__dirname, "../maps"))) fs.mkdirSync(resolve(__dirname, "../maps"));
     console.log(`Ready as ${client.user?.tag} in ${client.guilds.cache.size} servers !`);
 });
 
@@ -120,7 +120,7 @@ client.on("message", (msg) => {
     if (msg.channel.type !== "text" || msg.guild == undefined) return;
     let map = maps.get(msg.guild.id);
     if (map === undefined) {
-        map = new MapFile("maps/" + msg.guild.id);
+        map = new MapFile(resolve(__dirname, "../maps", msg.guild.id));
         maps.set(msg.guild.id, map);
     }
     if (
