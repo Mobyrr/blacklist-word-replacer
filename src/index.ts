@@ -1,16 +1,14 @@
+import * as fs from "fs";
 import {
     Client,
-    Collection,
     Message,
     Permissions,
-    ReactionUserManager,
     TextChannel,
     Webhook,
 } from "discord.js";
 import { resolve } from "path";
 import MapFile from "./MapFile";
 import { config } from "dotenv";
-import { verify } from "crypto";
 
 config({ path: resolve(__dirname, "../.env") });
 
@@ -113,6 +111,7 @@ function getContent(commands: string[], index: number) {
 }
 
 client.on("ready", () => {
+    if (!fs.existsSync("./maps")) fs.mkdirSync("./maps");
     console.log(`Ready as ${client.user?.tag} in ${client.guilds.cache.size} servers !`);
 });
 
