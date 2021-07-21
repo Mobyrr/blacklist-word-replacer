@@ -31,7 +31,6 @@ async function verifyMsg(msg: Message, map: MapFile): Promise<void> {
         [Permissions.FLAGS.MANAGE_WEBHOOKS, Permissions.FLAGS.MANAGE_MESSAGES])) {
         return;
     }
-
     if (!msg.deleted) msg.delete();
     webhookQueue.add(async () => {
         if (newMsg === null) throw "error";
@@ -56,7 +55,6 @@ async function verifyMsg(msg: Message, map: MapFile): Promise<void> {
                 });
             }
         } catch (e) {
-            console.log(e);
             channel.send(whError);
             return;
         }

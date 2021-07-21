@@ -3,11 +3,11 @@ import * as fs from "fs";
 export default class MapFile {
     static readonly SPLITTER: string = "µ";
 
-    private data: Map<String, String>;
+    private data: Map<string, string>;
     private path: string;
 
     constructor(path: string) {
-        this.data = new Map<String, String>();
+        this.data = new Map<string, string>();
         this.path = path;
         this.fillDataFromFile();
     }
@@ -17,10 +17,8 @@ export default class MapFile {
         let list = data.split("\n");
         for (let line of list) {
             if (line.trim() === "") continue;
-            if (
-                !line.includes(MapFile.SPLITTER) ||
-                line.indexOf(MapFile.SPLITTER) !== line.lastIndexOf(MapFile.SPLITTER)
-            ) {
+            if (!line.includes(MapFile.SPLITTER) ||
+                line.indexOf(MapFile.SPLITTER) !== line.lastIndexOf(MapFile.SPLITTER)) {
                 throw "the file is invalid";
             }
             let d = line.split(MapFile.SPLITTER);
@@ -28,11 +26,11 @@ export default class MapFile {
         }
     }
 
-    public get(key: String) {
+    public get(key: string) {
         return this.data.get(key);
     }
 
-    public async set(key: String, value: String): Promise<void> {
+    public async set(key: string, value: string): Promise<void> {
         if (key.includes(MapFile.SPLITTER) || value.includes(MapFile.SPLITTER))
             throw "Key or value contain the splitter";
         if (key.includes("\n") || value.includes("\n"))
@@ -45,11 +43,10 @@ export default class MapFile {
             let formatted = data.replace(re, key + MapFile.SPLITTER + value);
             await fs.promises.writeFile(this.path, formatted);
         }
-
         this.data.set(key, value);
     }
 
-    public async delete(key: String): Promise<boolean> {
+    public async delete(key: string): Promise<boolean> {
         let result = this.data.delete(key);
         if (result) {
             let data = (await fs.promises.readFile(this.path)).toString();
