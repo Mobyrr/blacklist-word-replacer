@@ -35,6 +35,8 @@ export default class MapFile {
     public async set(key: String, value: String): Promise<void> {
         if (key.includes(MapFile.SPLITTER) || value.includes(MapFile.SPLITTER))
             throw "Key or value contain the splitter";
+        if (key.includes("\n") || value.includes("\n"))
+            throw "Key or value contain \\n";
         if (!this.data.has(key)) {
             await fs.promises.appendFile(this.path, "\n" + key + MapFile.SPLITTER + value);
         } else {
