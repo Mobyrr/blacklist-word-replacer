@@ -3,7 +3,7 @@
 // implementer !help
 
 import * as fs from "fs";
-import { Client, Message, Permissions, TextChannel, Webhook } from "discord.js";
+import { Client, Message, Permissions, TextChannel, User, Webhook } from "discord.js";
 import { resolve } from "path";
 import MapFile from "./MapFile";
 import { config } from "dotenv";
@@ -41,7 +41,10 @@ async function verifyMsg(msg: Message, map: MapFile): Promise<void> {
         nickname = nickname == null ? msg.author.username : nickname;
         let avatar = msg.author.avatarURL();
         try {
-            wh = (await channel.fetchWebhooks()).first();
+            wh = (await channel.fetchWebhooks()).find(w => {
+                if (!(w.owner instanceof User)) return false;
+                return w.owner.id === botMember?.id;
+            });
             if (wh == undefined) {
                 wh = await channel.createWebhook(nickname, {
                     avatar: <string>avatar,
@@ -53,6 +56,7 @@ async function verifyMsg(msg: Message, map: MapFile): Promise<void> {
                 });
             }
         } catch (e) {
+            console.log(e);
             channel.send(whError);
             return;
         }
@@ -95,7 +99,7 @@ client.on("message", (msg) => {
     }
     let commands = msg.content.slice(prefix.length).trim().split(/\s+/);
     if (commands[0] === "add") {
-        let usage = "usage : `" + prefix + "add \"search value\" \"replace value\"";
+        let usage = "usage : " + prefix + "add \"search value\" \"replace value\"";
         const regex = /^"\s*([^\n]+)\s*"\s*"\s*([^\n]+)\s*"\s*$/;
         let content = getContent(commands, 1);
         let r = regex.exec(content)?.values();
