@@ -140,6 +140,7 @@ client.on("message", (msg) => {
             if (x >= 15) {
                 msg.channel.send(content);
                 x = 1;
+                content = "";
             }
         }
         if (x > 1) {
