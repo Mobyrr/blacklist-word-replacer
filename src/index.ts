@@ -13,7 +13,9 @@ import Util from "./Util";
 
 config({ path: resolve(__dirname, "../.env") });
 
-const client = new Client();
+const client = new Client({
+    allowedMentions: { parse: ["users"] }
+});
 let botID: string;
 const prefix = "!";
 let maps = new Map<string, MapFile>();
@@ -67,7 +69,6 @@ async function verifyMsg(msg: Message, map: MapFile): Promise<void> {
             channel.send(whError);
             return;
         }
-        newMsg = newMsg.replace("@everyone", "@every0ne").replace("@here", "@h3re");
         // up to 3 messages
         for (let i = 0; i < newMsg.length && i !== 6000; i += 2000) {
             wh.send(newMsg.slice(i, i + 2000));
