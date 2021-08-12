@@ -20,6 +20,12 @@ let maps = new Map<string, MapFile>();
 let webhookQueue = new syncQueue();
 
 async function verifyMsg(msg: Message, map: MapFile): Promise<void> {
+    if (!msg.member) return;
+    if (msg.content.includes("@everyone") || msg.content.includes("@here")) {
+        if ((<TextChannel>msg.channel).permissionsFor(msg.member)?.has("MENTION_EVERYONE")) {
+            return; // don't replace messages that pings everyone for avoid annoying the staff :)
+        }
+    }
     let newMsg = MessageReplacer.transformMessage(msg.content, map);
     if (newMsg === null) return;
     // the message should be replaced
@@ -38,32 +44,34 @@ async function verifyMsg(msg: Message, map: MapFile): Promise<void> {
         let whError = "Échec de la création/récupération du webhook, veuillez contacter Mobyr !";
         let nickname = msg.member?.nickname;
         nickname = nickname == null ? msg.author.username : nickname;
-        let avatar = msg.author.avatarURL();
+        let avatar: string | null | undefined = msg.author.avatarURL();
+        if (avatar === null) avatar = undefined;
         try {
             wh = (await channel.fetchWebhooks()).find(w => {
                 if (!(w.owner instanceof User)) return false;
                 return w.owner.id === botMember?.id;
             });
             if (wh == undefined) {
-                wh = await channel.createWebhook(nickname, {
-                    avatar: <string>avatar,
-                });
+                wh = await channel.createWebhook(nickname, { avatar: avatar });
             } else {
                 await wh.edit({
-                    avatar: <string>avatar,
+                    avatar: avatar,
                     name: nickname
                 });
             }
         } catch (e) {
-            channel.send(whError);
+            channel.send(whError + "\n" + e);
             return;
         }
         if (wh == undefined) {
             channel.send(whError);
             return;
         }
-        await wh.send(newMsg.slice(0, 2000));
-        if (newMsg.length > 2000) await wh.send(newMsg.slice(2000, 4000));
+        newMsg = newMsg.replace("@everyone", "@every0ne").replace("@here", "@h3re");
+        // up to 3 messages
+        for (let i = 0; i < newMsg.length && i !== 6000; i += 2000) {
+            wh.send(newMsg.slice(i, i + 2000));
+        }
     });
 }
 
@@ -97,7 +105,7 @@ client.on("message", (msg) => {
     }
     let commands = msg.content.slice(prefix.length).trim().split(/\s+/);
     if (commands[0] === "add") {
-        let usage = "usage : " + prefix + "add \"search value\" \"replace value\"";
+        let usage = "usage : " + prefix + "add \"`search value`\" \"`replace value`\"";
         const regex = /^"\s*([^\n]+)\s*"\s*"\s*([^\n]+)\s*"\s*$/;
         let content = getContent(commands, 1);
         let r = regex.exec(content)?.values();
@@ -112,7 +120,7 @@ client.on("message", (msg) => {
         );
         msg.react("✅");
     } else if (commands[0] === "remove") {
-        let usage = "usage : " + prefix + "add \"search value\"";
+        let usage = "usage : " + prefix + "remove \"`search value`\"";
         const regex = /^"\s*([^\n]+)\s*"\s*$/;
         let content = getContent(commands, 1);
         let r = regex.exec(content)?.values();
@@ -150,8 +158,8 @@ client.on("message", (msg) => {
         }
     } else if (commands[0] === "help" && commands.length === 1) {
         msg.channel.send(
-            prefix + "add \"search value\" \"replace value\"\n"
-            + prefix + "remove \"search value\"\n"
+            prefix + "add \"`search value`\" \"`replace value`\"\n"
+            + prefix + "remove \"`search value`\"\n"
             + prefix + "list\n"
         );
     } else {

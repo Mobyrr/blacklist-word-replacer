@@ -22,5 +22,5 @@ BOT_TOKEN=MYTOKEN
 ### Run
 
 ```bash
-npm run run
+npm run start
 ```

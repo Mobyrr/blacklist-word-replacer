@@ -4,7 +4,8 @@
   "description": "",
   "main": "",
   "scripts": {
-    "run": "npx tsc && node dist/index.js"
+    "compile": "npx tsc",
+    "start": "node dist/index.js"
   },
   "keywords": [],
   "author": "mobyr",
