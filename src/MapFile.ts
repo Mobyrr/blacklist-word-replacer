@@ -17,9 +17,11 @@ export default class MapFile {
         let list = data.split("\n");
         for (let line of list) {
             if (line.trim() === "") continue;
-            if (!line.includes(MapFile.SPLITTER) ||
-                line.indexOf(MapFile.SPLITTER) !== line.lastIndexOf(MapFile.SPLITTER)) {
-                throw "the file is invalid";
+            if (!line.includes(MapFile.SPLITTER)) {
+                this.data.clear();
+                fs.renameSync(this.path, this.path + ".error");
+                fs.readFileSync(this.path, { flag: "a+" });
+                return;
             }
             let d = line.split(MapFile.SPLITTER);
             this.data.set(d[0], d.slice(1));
@@ -38,9 +40,9 @@ export default class MapFile {
                 throw "A value contain the splitter or \\n";
         }
         if (!this.data.has(key)) {
-            fs.appendFileSync(this.path, "\n" + key + MapFile.SPLITTER + value);
+            fs.appendFileSync(this.path, "\n" + key + MapFile.SPLITTER + value.join(MapFile.SPLITTER), { flag: "a+" });
         } else {
-            let data = (fs.readFileSync(this.path)).toString();
+            let data = fs.readFileSync(this.path, { flag: "a+" }).toString();
             let re = new RegExp("^" + key + MapFile.SPLITTER + ".*$", "gm");
             let formatted = data.replace(re, key + MapFile.SPLITTER + value.join(MapFile.SPLITTER));
             fs.writeFileSync(this.path, formatted);
@@ -51,7 +53,7 @@ export default class MapFile {
     public delete(key: string): boolean {
         let result = this.data.delete(key);
         if (result) {
-            let data = fs.readFileSync(this.path).toString();
+            let data = fs.readFileSync(this.path, { flag: "a+" }).toString();
             let formatted = data.replace(new RegExp("^" + key + MapFile.SPLITTER + ".*", "gm"), "");
             formatted = formatted.replace(new RegExp("^(?:[\t ]*(?:\r?\n|\r))+", "gm"), "");
             fs.writeFileSync(this.path, formatted);
@@ -61,5 +63,9 @@ export default class MapFile {
 
     public keys() {
         return this.data.keys();
+    }
+
+    public size() {
+        return this.data.size;
     }
 }

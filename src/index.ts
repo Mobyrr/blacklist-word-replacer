@@ -1,20 +1,17 @@
-// todo : améliorer lettres tenus en compte dans le premier champ de !add "x" "y"
-// implementer !remove
-// implementer !help
-
 import * as fs from "fs";
-import { Client, Message, Permissions, TextChannel, ThreadChannel, User, Webhook } from "discord.js";
+import { Client, Message, Permissions, TextChannel, ThreadChannel, User, Webhook, MessageAttachment, MessageEmbed } from "discord.js";
 import { resolve } from "path";
 import MapFile from "./MapFile";
 import { config } from "dotenv";
 import MessageReplacer from "./MessageReplacer";
 import syncQueue from "./SyncQueue";
 import Util from "./Util";
+import * as assert from "assert";
 
 config({ path: resolve(__dirname, "../.env") });
 
 const client = new Client({
-    allowedMentions: { parse: ["users"] },
+    allowedMentions: { parse: [] },
     intents: ['GUILDS', 'GUILD_MESSAGES']
 });
 let botID: string;
@@ -24,57 +21,91 @@ let webhookQueue = new syncQueue();
 
 async function verifyMsg(msg: Message, map: MapFile): Promise<void> {
     if (!msg.member) return;
-    if (msg.content.includes("@everyone") || msg.content.includes("@here")) {
-        if ((<TextChannel>msg.channel).permissionsFor(msg.member)?.has("MENTION_EVERYONE")) {
-            return; // don't replace messages that pings everyone for avoid annoying the staff :)
-        }
+    assert(msg.channel instanceof TextChannel || msg.channel instanceof ThreadChannel);
+    assert(msg.type === "DEFAULT" || msg.type === "REPLY");
+    let parentChannel = msg.channel;
+    if (parentChannel instanceof ThreadChannel) {
+        if (!(parentChannel.parent instanceof TextChannel)) return;
+        parentChannel = parentChannel.parent;
+    }
+    if ((msg.content.includes("@everyone") || msg.content.includes("@here"))
+        && parentChannel.permissionsFor(msg.member)?.has("MENTION_EVERYONE")) {
+        return; // don't replace messages that pings everyone for avoid annoying the staff
     }
     let newMsg = MessageReplacer.transformMessage(msg.content, map);
-    if (newMsg === null) return;
-    // the message should be replaced
-    if (!(msg.channel instanceof TextChannel)) throw "Error";
-    let channel: TextChannel = msg.channel;
-    let botMember = channel.members.get(botID);
-    if (botMember === undefined) throw "Error";
-    if (!Util.checkPermission("Remplacement du message précédent échoué", botMember, channel,
+    if (newMsg === null) return; // no need to replace
+    let botMember = parentChannel.members.get(botID);
+    assert(botMember !== undefined);
+    if (Util.sendMissingPermissions("Remplacement du message précédent échoué", botMember, msg.channel,
         [Permissions.FLAGS.MANAGE_WEBHOOKS, Permissions.FLAGS.MANAGE_MESSAGES])) {
         return;
     }
-    if (!msg.deleted) msg.delete();
+    try { msg.delete() } catch { }
     webhookQueue.add(async () => {
-        if (newMsg === null) throw "error";
+        assert(newMsg !== null && parentChannel instanceof TextChannel);
         let wh: Webhook | undefined;
         let whError = "Échec de la création/récupération du webhook, veuillez contacter Mobyr !";
         let nickname = msg.member?.nickname;
         nickname = nickname == null ? msg.author.username : nickname;
-        let avatar: string | null | undefined = msg.author.avatarURL();
+        let avatar: string | null | undefined = msg.author.avatarURL({ format: "png" });
         if (avatar === null) avatar = undefined;
         try {
-            wh = (await channel.fetchWebhooks()).find(w => {
+            wh = (await parentChannel.fetchWebhooks()).find(w => {
                 if (!(w.owner instanceof User)) return false;
                 return w.owner.id === botMember?.id;
             });
             if (wh == undefined) {
-                wh = await channel.createWebhook(nickname, { avatar: avatar });
-            } else {
-                await wh.edit({
-                    avatar: avatar,
-                    name: nickname
-                });
+                let avatar = botMember?.user.avatarURL({ format: "png" });
+                if (avatar === null) avatar = undefined;
+                wh = await parentChannel.createWebhook("Word replacer webhook", { avatar: avatar });
             }
         } catch (e) {
-            channel.send(whError + "\n" + e);
+            msg.channel.send(whError + "\n" + e);
             return;
         }
         if (wh == undefined) {
-            channel.send(whError);
+            msg.channel.send(whError);
             return;
         }
-        // up to 3 messages
-        for (let i = 0; i < newMsg.length && i !== 6000; i += 2000) {
-            wh.send(newMsg.slice(i, i + 2000));
+
+        for (let i = 0; i < newMsg.length && i !== 3 * Util.MESSAGE_MAX_LENGTH; i += Util.MESSAGE_MAX_LENGTH) {
+            let msgAttachements: MessageAttachment[] = [];
+            let embeds: MessageEmbed[] = [];
+            if (i + Util.MESSAGE_MAX_LENGTH >= newMsg.length) {
+                msg.attachments.each(a => {
+                    msgAttachements.push(a);
+                });
+                embeds = msg.embeds;
+                if (msg.reference !== null && msg.reference.messageId !== null) {
+                    let reference = msg.channel.messages.cache.get(msg.reference.messageId);
+                    if (reference === undefined) return;
+                    embeds.unshift(new MessageEmbed()
+                        .setTitle("En réponse à " + (msg.mentions.has(reference.author, { ignoreRoles: true, ignoreEveryone: true }) ? "@" : "")
+                            + (reference.member?.nickname === null || reference.member?.nickname === undefined ? reference.author.username : reference.member?.nickname))
+                        .setURL(reference.url)
+                        .setColor("#4f545c"));
+                    embeds.splice(Util.EMBED_MAX_NUMBER, 1);
+                }
+            }
+            wh.send({
+                content: newMsg.slice(i, i + Util.MESSAGE_MAX_LENGTH),
+                threadId: msg.channel.isThread() ? msg.channel.id : undefined,
+                avatarURL: avatar,
+                username: nickname,
+                files: msgAttachements,
+                embeds: embeds
+            });
         }
     });
+}
+
+function getServerMap(guildID: string): MapFile {
+    let map = maps.get(guildID);
+    if (map === undefined) {
+        map = new MapFile(resolve(__dirname, "../maps", guildID));
+        maps.set(guildID, map);
+    }
+    return map;
 }
 
 function getContent(commands: string[], index: number) {
@@ -85,41 +116,30 @@ client.on("ready", () => {
     if (!fs.existsSync(resolve(__dirname, "../maps"))) fs.mkdirSync(resolve(__dirname, "../maps"));
     console.log(`Ready as ${client.user?.tag} in ${client.guilds.cache.size} servers !`);
     let id = client.user?.id;
-    if (id == undefined) throw "Error";
+    assert(id !== undefined);
     botID = id;
 });
 
 client.on("messageCreate", (msg) => {
+    if (msg.type !== "DEFAULT" && msg.type !== "REPLY") return;
     if (msg.author.bot) return;
     if (msg.guild === null) return;
     if (!(msg.channel instanceof TextChannel || msg.channel instanceof ThreadChannel)) return;
-    let channel = msg.channel;
-    if (channel.isThread()) {
-        if (!(channel.parent instanceof TextChannel)) return;
-        channel = channel.parent;
-    }
-    let botMember = channel.members.get(botID);
-    if (botMember === undefined) throw "Error";
-    if (!channel.permissionsFor(botMember)?.has(Permissions.FLAGS.SEND_MESSAGES)) return;
-    let map = maps.get(msg.guild.id);
-    if (map === undefined) {
-        map = new MapFile(resolve(__dirname, "../maps", msg.guild.id));
-        maps.set(msg.guild.id, map);
-    }
-    if (!msg.content.startsWith(prefix) ||
-        !msg.member?.permissions.has(Permissions.FLAGS.MANAGE_MESSAGES)) {
-        try {
-            verifyMsg(msg, map);
-        } catch (e) {
-            console.log(e);
-        }
-
+    let botMember = msg.guild.members.cache.get(botID);
+    assert(botMember !== undefined);
+    if (!msg.channel.permissionsFor(botMember)?.has(Permissions.FLAGS.SEND_MESSAGES)) return;
+    let map = getServerMap(msg.guild.id);
+    if (!msg.content.startsWith(prefix) || !msg.member?.permissions.has(Permissions.FLAGS.MANAGE_MESSAGES)) {
+        verifyMsg(msg, map);
         return;
     }
+
     let commands = msg.content.slice(prefix.length).trim().split(/\s+/);
     if (commands[0] === "add") {
-        let usage = "usage : " + prefix + "add \"`search value`\" \"`replace value`\" `[priority]`";
-        const regex = /^\"\s*([^\n]+)\s*\"\s*\"\s*([^\n]+)\s*\"\s*(-?[0-2])?$/;
+        //let usage = "usage : " + prefix + "add \"`search value`\" \"`replace value`\" `[priority (-2 to 2)]`";
+        //const regex = /^\"\s*([^\n]+)\s*\"\s*\"\s*([^\n]+)\s*\"\s*([-+]?[0-2])?$/;
+        let usage = "usage : " + prefix + "add \"`search value`\" \"`replace value`\"";
+        const regex = /^\"\s*([^\n]+)\s*\"\s*\"\s*([^\n]+)\s*\"\s*$/;
         let content = getContent(commands, 1);
         let r = regex.exec(content)?.values();
         if (r === undefined) {
@@ -127,14 +147,12 @@ client.on("messageCreate", (msg) => {
             return;
         }
         r.next();
-        let key = r.next().value;
-        let value = r.next().value;
-        let p = r.next().value;
-        if ()
-            let priority = parseInt(r.next().value) + 2;
+        let key: string = r.next().value;
+        let value: string = r.next().value;
+        //let priority = parseInt(r.next().value) + 2;
         map.set(
             MessageReplacer.normalizeKey(key).value,
-            key.trim()
+            [value.trim()] //, String(Number.isNaN(priority) ? 2 : priority)]
         );
         msg.react("✅");
     } else if (commands[0] === "remove") {
@@ -154,24 +172,23 @@ client.on("messageCreate", (msg) => {
             msg.channel.send("La valeur " + key + " n'a pas été trouvé. Veuillez faire " + prefix + "list pour voir les valeurs possibles.");
         }
     } else if (commands[0] === "list" && commands.length === 1) {
-        let x = 1;
+        if (map.size() === 0) {
+            msg.channel.send("Aucune association enregistré.");
+            return;
+        }
         let content = "";
-        let isEmpty = true;
         for (let key of map.keys()) {
-            if (isEmpty) isEmpty = false;
-            x++;
-            content += "`" + key + "`" + " => " + "`" + map.get(key) + "`\n";
-            if (x >= 15) {
+            let value = map.get(key);
+            assert(value !== undefined);
+            let line = "`" + key + "` ➔ `" + value[0].replaceAll("`", "``") + "`";
+            if (content.length + line.length + 1 >= Util.MESSAGE_MAX_LENGTH) {
                 msg.channel.send(content);
-                x = 1;
-                content = "";
+                content = line;
+            } else {
+                content += "\n" + line;
             }
         }
-        if (x > 1) {
-            msg.channel.send(content);
-        } else if (isEmpty) {
-            msg.channel.send("Aucune association enregistré.");
-        }
+        if (content.length !== 0) msg.channel.send(content);
     } else if (commands[0] === "help" && commands.length === 1) {
         msg.channel.send(
             prefix + "add \"`search value`\" \"`replace value`\"\n"
@@ -184,7 +201,7 @@ client.on("messageCreate", (msg) => {
 });
 
 client.on("messageUpdate", async (oldMsg, msg) => {
-    if (msg.partial) msg = await msg.fetch();
+    if (msg.type !== "DEFAULT" && msg.type !== "REPLY") return;
     if (msg.author.bot) return;
     if (!(msg.channel instanceof TextChannel || msg.channel instanceof ThreadChannel)) return;
     if (msg.guild === null) return;
@@ -192,16 +209,24 @@ client.on("messageUpdate", async (oldMsg, msg) => {
         !msg.content.startsWith(prefix) ||
         !msg.member?.permissions.has(Permissions.FLAGS.MANAGE_MESSAGES)
     ) {
-        let map = maps.get(msg.guild.id);
-        if (map === undefined) {
-            map = new MapFile(resolve(__dirname, "../maps", msg.guild.id));
-            maps.set(msg.guild.id, map);
-        }
+        let map = getServerMap(msg.guild.id);
         verifyMsg(msg, map);
         return;
     }
 });
 
-
+client.on("threadCreate", async (channel) => {
+    if (channel.ownerId === null) return;
+    let member = channel.guild.members.cache.get(channel.ownerId);
+    assert(member !== undefined);
+    if (!(channel.parent instanceof TextChannel)) return;
+    if (channel.permissionsFor(member).has("MANAGE_MESSAGES") || channel.permissionsFor(member).has("MANAGE_THREADS")) return;
+    if (!channel.permissionsFor(botID)?.has("MANAGE_THREADS")) return;
+    let map = getServerMap(channel.guild.id);
+    let newName = MessageReplacer.transformMessage(channel.name, map);
+    if (newName !== null) {
+        channel.setName(newName.slice(0, Util.THREAD_MAX_LENGTH));
+    }
+});
 
 client.login(process.env.BOT_TOKEN);

@@ -8,7 +8,7 @@ Discord bot written in typescript to replace words
 
 ```bash
 npm install
-npm run compile
+npx tsc
 ```
 
 ### Configure env
