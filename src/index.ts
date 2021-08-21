@@ -200,7 +200,7 @@ client.on("messageCreate", (msg) => {
     }
 });
 
-client.on("messageUpdate", async (oldMsg, msg) => {
+client.on("messageUpdate", (oldMsg, msg) => {
     if (msg.type !== "DEFAULT" && msg.type !== "REPLY") return;
     if (msg.author.bot) return;
     if (!(msg.channel instanceof TextChannel || msg.channel instanceof ThreadChannel)) return;
@@ -214,19 +214,3 @@ client.on("messageUpdate", async (oldMsg, msg) => {
         return;
     }
 });
-
-client.on("threadCreate", async (channel) => {
-    if (channel.ownerId === null) return;
-    let member = channel.guild.members.cache.get(channel.ownerId);
-    assert(member !== undefined);
-    if (!(channel.parent instanceof TextChannel)) return;
-    if (channel.permissionsFor(member).has("MANAGE_MESSAGES") || channel.permissionsFor(member).has("MANAGE_THREADS")) return;
-    if (!channel.permissionsFor(botID)?.has("MANAGE_THREADS")) return;
-    let map = getServerMap(channel.guild.id);
-    let newName = MessageReplacer.transformMessage(channel.name, map);
-    if (newName !== null) {
-        channel.setName(newName.slice(0, Util.THREAD_MAX_LENGTH));
-    }
-});
-
-client.login(process.env.BOT_TOKEN);
