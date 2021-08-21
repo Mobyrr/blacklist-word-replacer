@@ -40,7 +40,8 @@ async function verifyMsg(msg: Message, map: MapFile): Promise<void> {
         [Permissions.FLAGS.MANAGE_WEBHOOKS, Permissions.FLAGS.MANAGE_MESSAGES])) {
         return;
     }
-    try { msg.delete() } catch { }
+
+    try { setTimeout(() => { msg.delete() }, 0.2) } catch { }
     webhookQueue.add(async () => {
         assert(newMsg !== null && parentChannel instanceof TextChannel);
         let wh: Webhook | undefined;
@@ -67,7 +68,6 @@ async function verifyMsg(msg: Message, map: MapFile): Promise<void> {
             msg.channel.send(whError);
             return;
         }
-
         for (let i = 0; i < newMsg.length && i !== 3 * Util.MESSAGE_MAX_LENGTH; i += Util.MESSAGE_MAX_LENGTH) {
             let msgAttachements: MessageAttachment[] = [];
             let embeds: MessageEmbed[] = [];
