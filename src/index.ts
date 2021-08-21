@@ -3,7 +3,7 @@
 // implementer !help
 
 import * as fs from "fs";
-import { Client, Message, Permissions, TextChannel, User, Webhook } from "discord.js";
+import { Client, Message, Permissions, TextChannel, ThreadChannel, User, Webhook } from "discord.js";
 import { resolve } from "path";
 import MapFile from "./MapFile";
 import { config } from "dotenv";
@@ -14,7 +14,8 @@ import Util from "./Util";
 config({ path: resolve(__dirname, "../.env") });
 
 const client = new Client({
-    allowedMentions: { parse: ["users"] }
+    allowedMentions: { parse: ["users"] },
+    intents: ['GUILDS', 'GUILD_MESSAGES']
 });
 let botID: string;
 const prefix = "!";
@@ -88,26 +89,37 @@ client.on("ready", () => {
     botID = id;
 });
 
-client.on("message", (msg) => {
+client.on("messageCreate", (msg) => {
     if (msg.author.bot) return;
-    if (msg.channel.type !== "text" || msg.guild == undefined) return;
-    let botMember = msg.channel.members.get(botID);
+    if (msg.guild === null) return;
+    if (!(msg.channel instanceof TextChannel || msg.channel instanceof ThreadChannel)) return;
+    let channel = msg.channel;
+    if (channel.isThread()) {
+        if (!(channel.parent instanceof TextChannel)) return;
+        channel = channel.parent;
+    }
+    let botMember = channel.members.get(botID);
     if (botMember === undefined) throw "Error";
-    if (!msg.channel.permissionsFor(botMember)?.has(Permissions.FLAGS.SEND_MESSAGES)) return;
+    if (!channel.permissionsFor(botMember)?.has(Permissions.FLAGS.SEND_MESSAGES)) return;
     let map = maps.get(msg.guild.id);
     if (map === undefined) {
         map = new MapFile(resolve(__dirname, "../maps", msg.guild.id));
         maps.set(msg.guild.id, map);
     }
     if (!msg.content.startsWith(prefix) ||
-        !msg.member?.hasPermission(Permissions.FLAGS.MANAGE_MESSAGES)) {
-        verifyMsg(msg, map);
+        !msg.member?.permissions.has(Permissions.FLAGS.MANAGE_MESSAGES)) {
+        try {
+            verifyMsg(msg, map);
+        } catch (e) {
+            console.log(e);
+        }
+
         return;
     }
     let commands = msg.content.slice(prefix.length).trim().split(/\s+/);
     if (commands[0] === "add") {
-        let usage = "usage : " + prefix + "add \"`search value`\" \"`replace value`\"";
-        const regex = /^"\s*([^\n]+)\s*"\s*"\s*([^\n]+)\s*"\s*$/;
+        let usage = "usage : " + prefix + "add \"`search value`\" \"`replace value`\" `[priority]`";
+        const regex = /^\"\s*([^\n]+)\s*\"\s*\"\s*([^\n]+)\s*\"\s*(-?[0-2])?$/;
         let content = getContent(commands, 1);
         let r = regex.exec(content)?.values();
         if (r === undefined) {
@@ -115,9 +127,14 @@ client.on("message", (msg) => {
             return;
         }
         r.next();
+        let key = r.next().value;
+        let value = r.next().value;
+        let p = r.next().value;
+        if ()
+            let priority = parseInt(r.next().value) + 2;
         map.set(
-            MessageReplacer.normalizeKey(String(r.next().value)).value,
-            String(r.next().value).trim()
+            MessageReplacer.normalizeKey(key).value,
+            key.trim()
         );
         msg.react("✅");
     } else if (commands[0] === "remove") {
@@ -131,13 +148,11 @@ client.on("message", (msg) => {
         }
         r.next();
         let key = MessageReplacer.normalizeKey(String(r.next().value)).value;
-        map.delete(key).then(b => {
-            if (b) {
-                msg.react("✅");
-            } else {
-                msg.channel.send("La valeur " + key + " n'a pas été trouvé. Veuillez faire " + prefix + "list pour voir les valeurs possibles.");
-            }
-        })
+        if (map.delete(key)) {
+            msg.react("✅");
+        } else {
+            msg.channel.send("La valeur " + key + " n'a pas été trouvé. Veuillez faire " + prefix + "list pour voir les valeurs possibles.");
+        }
     } else if (commands[0] === "list" && commands.length === 1) {
         let x = 1;
         let content = "";
@@ -171,10 +186,11 @@ client.on("message", (msg) => {
 client.on("messageUpdate", async (oldMsg, msg) => {
     if (msg.partial) msg = await msg.fetch();
     if (msg.author.bot) return;
-    if (msg.channel.type !== "text" || msg.guild == undefined) return;
+    if (!(msg.channel instanceof TextChannel || msg.channel instanceof ThreadChannel)) return;
+    if (msg.guild === null) return;
     if (
         !msg.content.startsWith(prefix) ||
-        !msg.member?.hasPermission(Permissions.FLAGS.MANAGE_MESSAGES)
+        !msg.member?.permissions.has(Permissions.FLAGS.MANAGE_MESSAGES)
     ) {
         let map = maps.get(msg.guild.id);
         if (map === undefined) {
@@ -185,5 +201,7 @@ client.on("messageUpdate", async (oldMsg, msg) => {
         return;
     }
 });
+
+
 
 client.login(process.env.BOT_TOKEN);

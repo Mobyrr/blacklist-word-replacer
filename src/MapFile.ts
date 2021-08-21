@@ -3,16 +3,16 @@ import * as fs from "fs";
 export default class MapFile {
     static readonly SPLITTER: string = "µ";
 
-    private data: Map<string, string>;
+    private data: Map<string, string[]>;
     private path: string;
 
     constructor(path: string) {
-        this.data = new Map<string, string>();
+        this.data = new Map<string, string[]>();
         this.path = path;
         this.fillDataFromFile();
     }
 
-    private fillDataFromFile() {
+    private fillDataFromFile(): void {
         let data = fs.readFileSync(this.path, { flag: "a+" }).toString();
         let list = data.split("\n");
         for (let line of list) {
@@ -22,39 +22,39 @@ export default class MapFile {
                 throw "the file is invalid";
             }
             let d = line.split(MapFile.SPLITTER);
-            this.data.set(d[0], d[1]);
+            this.data.set(d[0], d.slice(1));
         }
     }
 
-    public get(key: string) {
+    public get(key: string): string[] | undefined {
         return this.data.get(key);
     }
 
-    public async set(key: string, value: string): Promise<void> {
-        if (key.includes(MapFile.SPLITTER) || value.includes(MapFile.SPLITTER))
-            throw "Key or value contain the splitter";
-        if (key.includes("\n") || value.includes("\n"))
-            throw "Key or value contain \\n";
+    public set(key: string, value: string[]): void {
+        if (key.includes(MapFile.SPLITTER) || key.includes("\n"))
+            throw "The key contain the splitter or \\n";
+        for (let v of value) {
+            if (v.includes(MapFile.SPLITTER) || v.includes("\n"))
+                throw "A value contain the splitter or \\n";
+        }
         if (!this.data.has(key)) {
-            await fs.promises.appendFile(this.path, "\n" + key + MapFile.SPLITTER + value);
+            fs.appendFileSync(this.path, "\n" + key + MapFile.SPLITTER + value);
         } else {
-            let data = (await fs.promises.readFile(this.path)).toString();
+            let data = (fs.readFileSync(this.path)).toString();
             let re = new RegExp("^" + key + MapFile.SPLITTER + ".*$", "gm");
-            let formatted = data.replace(re, key + MapFile.SPLITTER + value);
-            await fs.promises.writeFile(this.path, formatted);
+            let formatted = data.replace(re, key + MapFile.SPLITTER + value.join(MapFile.SPLITTER));
+            fs.writeFileSync(this.path, formatted);
         }
         this.data.set(key, value);
     }
 
-    public async delete(key: string): Promise<boolean> {
+    public delete(key: string): boolean {
         let result = this.data.delete(key);
         if (result) {
-            let data = (await fs.promises.readFile(this.path)).toString();
+            let data = fs.readFileSync(this.path).toString();
             let formatted = data.replace(new RegExp("^" + key + MapFile.SPLITTER + ".*", "gm"), "");
             formatted = formatted.replace(new RegExp("^(?:[\t ]*(?:\r?\n|\r))+", "gm"), "");
-            console.log(data);
-            console.log(formatted);
-            await fs.promises.writeFile(this.path, formatted);
+            fs.writeFileSync(this.path, formatted);
         }
         return result;
     }
