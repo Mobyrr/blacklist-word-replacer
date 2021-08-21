@@ -214,3 +214,5 @@ client.on("messageUpdate", (oldMsg, msg) => {
         return;
     }
 });
+
+client.login(process.env.BOT_TOKEN);
