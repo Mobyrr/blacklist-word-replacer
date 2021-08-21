@@ -41,7 +41,7 @@ async function verifyMsg(msg: Message, map: MapFile): Promise<void> {
         return;
     }
 
-    try { setTimeout(() => { msg.delete() }, 0.2) } catch { }
+    try { setTimeout(() => { msg.delete() }, 150) } catch { }
     webhookQueue.add(async () => {
         assert(newMsg !== null && parentChannel instanceof TextChannel);
         let wh: Webhook | undefined;
