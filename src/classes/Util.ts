@@ -1,4 +1,5 @@
-import { GuildMember, PermissionFlags, PermissionResolvable, Permissions, TextChannel, ThreadChannel } from "discord.js";
+import { GuildMember, PermissionFlags, PermissionResolvable, Permissions, TextChannel, ThreadChannel, User, Webhook } from "discord.js";
+import SyncQueue from "./SyncQueue";
 
 
 export default class Util {
@@ -11,6 +12,7 @@ export default class Util {
         [Permissions.FLAGS.MANAGE_MESSAGES, "Gérer les messages"],
         [Permissions.FLAGS.MANAGE_WEBHOOKS, "Gérer les webhooks"]
     ]);
+    private static webhookQueue: SyncQueue = new SyncQueue();
 
     public static sendMissingPermissions(failureMessage: string, member: GuildMember, channel: TextChannel | ThreadChannel,
         permissions: PermissionResolvable[]): boolean {
@@ -34,5 +36,19 @@ export default class Util {
 
     public static permissionToStr(permission: PermissionResolvable): string | undefined {
         return this.permissionToStrMap.get(Permissions.resolve(permission));
+    }
+
+    public static async getWebhook(channel: TextChannel): Promise<Webhook> {
+        let wh: Webhook | undefined;
+        wh = (await channel.fetchWebhooks()).find(w => {
+            if (!(w.owner instanceof User)) return false;
+            return w.owner.id === channel.client.user?.id;
+        });
+        if (wh === undefined) {
+            let avatar = channel.client.user?.avatarURL({ format: "png" });
+            if (avatar === null) avatar = undefined;
+            wh = await channel.createWebhook("Word replacer webhook", { avatar: avatar });
+        }
+        return wh;
     }
 }

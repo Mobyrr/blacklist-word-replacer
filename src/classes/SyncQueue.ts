@@ -1,8 +1,8 @@
 export default class SyncQueue {
-    private queue : (() => Promise<unknown>)[] = [];
-    private running : boolean = false;
+    private queue: (() => Promise<unknown>)[] = [];
+    private running: boolean = false;
 
-    public add(callback : () => Promise<unknown>) {
+    public add(callback: () => Promise<unknown>) {
         this.queue.push(callback);
         if (!this.running) {
             this.running = true;

@@ -1,8 +1,70 @@
 import * as assert from "assert";
+import { channel } from "diagnostics_channel";
+import { Message, TextChannel, ThreadChannel, Permissions, User, MessageAttachment, MessageEmbed } from "discord.js";
 import MapFile from "./MapFile";
+import Util from "./Util";
 
 export default class MessageReplacer {
     static readonly normalizerRegex = /\p{Diacritic}|[^ a-zA-Z\d]/gu;
+
+    public static async replaceMsg(msg: Message, map: MapFile): Promise<void> {
+        if (!msg.member) return;
+        assert(msg.channel instanceof TextChannel || msg.channel instanceof ThreadChannel);
+        assert(msg.type === "DEFAULT" || msg.type === "REPLY");
+        let parentChannel = msg.channel;
+        if (parentChannel instanceof ThreadChannel) {
+            if (!(parentChannel.parent instanceof TextChannel)) return;
+            parentChannel = parentChannel.parent;
+        }
+        if ((msg.content.includes("@everyone") || msg.content.includes("@here"))
+            && parentChannel.permissionsFor(msg.member)?.has("MENTION_EVERYONE")) {
+            return; // don't replace messages that pings everyone for avoid annoying the staff
+        }
+        let newMsg = MessageReplacer.transformMessage(msg.content, map);
+        if (newMsg === null) return; // no need to replace
+        assert(msg.client.user?.id !== undefined)
+        let botMember = parentChannel.members.get(msg.client.user.id);
+        assert(botMember !== undefined);
+        if (Util.sendMissingPermissions("Remplacement du message précédent échoué", botMember, msg.channel,
+            [Permissions.FLAGS.MANAGE_WEBHOOKS, Permissions.FLAGS.MANAGE_MESSAGES])) {
+            return;
+        }
+        try { setTimeout(() => { msg.delete() }, 150) } catch { }
+        assert(newMsg !== null && parentChannel instanceof TextChannel);
+        let nickname = msg.member?.nickname;
+        nickname = nickname == null ? msg.author.username : nickname;
+        let avatar: string | null | undefined = msg.author.avatarURL({ format: "png" });
+        if (avatar === null) avatar = undefined;
+        let wh = await Util.getWebhook(parentChannel);
+        for (let i = 0; i < newMsg.length && i !== 3 * Util.MESSAGE_MAX_LENGTH; i += Util.MESSAGE_MAX_LENGTH) {
+            let msgAttachements: MessageAttachment[] = [];
+            let embeds: MessageEmbed[] = [];
+            if (i + Util.MESSAGE_MAX_LENGTH >= newMsg.length) {
+                msg.attachments.each(a => {
+                    msgAttachements.push(a);
+                });
+                embeds = msg.embeds;
+                if (msg.reference !== null && msg.reference.messageId !== null) {
+                    let reference = msg.channel.messages.cache.get(msg.reference.messageId);
+                    if (reference === undefined) return;
+                    embeds.unshift(new MessageEmbed()
+                        .setTitle("En réponse à " + (msg.mentions.has(reference.author, { ignoreRoles: true, ignoreEveryone: true }) ? "@" : "")
+                            + (reference.member?.nickname === null || reference.member?.nickname === undefined ? reference.author.username : reference.member?.nickname))
+                        .setURL(reference.url)
+                        .setColor("#4f545c"));
+                    embeds.splice(Util.EMBED_MAX_NUMBER, 1);
+                }
+            }
+            wh.send({
+                content: newMsg.slice(i, i + Util.MESSAGE_MAX_LENGTH),
+                threadId: msg.channel.isThread() ? msg.channel.id : undefined,
+                avatarURL: avatar,
+                username: nickname,
+                files: msgAttachements,
+                embeds: embeds
+            });
+        }
+    }
 
     /**
      * @returns null if the message has not been changed, otherwise the transformed message
