@@ -120,3 +120,4 @@ dist
 # added by me
 dist/
 maps/*
+start.sh

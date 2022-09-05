@@ -1,6 +1,5 @@
 import * as assert from "assert";
-import { channel } from "diagnostics_channel";
-import { Message, TextChannel, ThreadChannel, Permissions, User, MessageAttachment, MessageEmbed } from "discord.js";
+import { Message, TextChannel, ThreadChannel, MessageType, PermissionFlagsBits, Attachment, Embed, EmbedBuilder, APIEmbed, MessageSelectOption } from "discord.js";
 import MapFile from "./MapFile";
 import Util from "./Util";
 
@@ -10,48 +9,51 @@ export default class MessageReplacer {
     public static async replaceMsg(msg: Message, map: MapFile): Promise<void> {
         if (!msg.member) return;
         assert(msg.channel instanceof TextChannel || msg.channel instanceof ThreadChannel);
-        assert(msg.type === "DEFAULT" || msg.type === "REPLY");
+        assert(msg.type === MessageType.Default || msg.type === MessageType.Reply);
         let parentChannel = msg.channel;
         if (parentChannel instanceof ThreadChannel) {
             if (!(parentChannel.parent instanceof TextChannel)) return;
             parentChannel = parentChannel.parent;
         }
         if ((msg.content.includes("@everyone") || msg.content.includes("@here"))
-            && parentChannel.permissionsFor(msg.member)?.has("MENTION_EVERYONE")) {
-            return; // don't replace messages that pings everyone for avoid annoying the staff
+            && parentChannel.permissionsFor(msg.member)?.has(PermissionFlagsBits.MentionEveryone)) {
+            return; // don't replace important messages that pings everyone
         }
         let newMsg = MessageReplacer.transformMessage(msg.content, map);
-        if (newMsg === null) return; // no need to replace
+        if (newMsg === null) return; // null = no need to replace
         assert(msg.client.user?.id !== undefined)
         let botMember = parentChannel.members.get(msg.client.user.id);
         assert(botMember !== undefined);
         if (Util.sendMissingPermissions("Remplacement du message précédent échoué", botMember, msg.channel,
-            [Permissions.FLAGS.MANAGE_WEBHOOKS, Permissions.FLAGS.MANAGE_MESSAGES])) {
+            [PermissionFlagsBits.ManageWebhooks, PermissionFlagsBits.ManageMessages])) {
             return;
         }
         try { setTimeout(() => { msg.delete() }, 150) } catch { }
         assert(newMsg !== null && parentChannel instanceof TextChannel);
         let nickname = msg.member?.nickname;
         nickname = nickname == null ? msg.author.username : nickname;
-        let avatar: string | null | undefined = msg.author.avatarURL({ format: "png" });
+        let avatar: string | null | undefined = msg.author.avatarURL({ extension: "png" });
         if (avatar === null) avatar = undefined;
         let wh = await Util.getWebhook(parentChannel);
         for (let i = 0; i < newMsg.length && i !== 3 * Util.MESSAGE_MAX_LENGTH; i += Util.MESSAGE_MAX_LENGTH) {
-            let msgAttachements: MessageAttachment[] = [];
-            let embeds: MessageEmbed[] = [];
+            let msgAttachements: Attachment[] = [];
+            let embeds: EmbedBuilder[] = [];
             if (i + Util.MESSAGE_MAX_LENGTH >= newMsg.length) {
                 msg.attachments.each(a => {
                     msgAttachements.push(a);
                 });
-                embeds = msg.embeds;
-                if (msg.reference !== null && msg.reference.messageId !== null) {
+                for (let msgEmbed of msg.embeds) {
+                    embeds.push(new EmbedBuilder(msgEmbed.data));
+                }
+                if (msg.reference !== null && msg.reference.messageId !== undefined) {
                     let reference = msg.channel.messages.cache.get(msg.reference.messageId);
                     if (reference === undefined) return;
-                    embeds.unshift(new MessageEmbed()
+                    let color = reference.member?.displayHexColor;
+                    embeds.unshift(new EmbedBuilder()
                         .setTitle("En réponse à " + (msg.mentions.has(reference.author, { ignoreRoles: true, ignoreEveryone: true }) ? "@" : "")
                             + (reference.member?.nickname === null || reference.member?.nickname === undefined ? reference.author.username : reference.member?.nickname))
                         .setURL(reference.url)
-                        .setColor("#4f545c"));
+                        .setColor(color == null ? "#4f545c" : color));
                     embeds.splice(Util.EMBED_MAX_NUMBER, 1);
                 }
             }

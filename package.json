@@ -4,8 +4,9 @@
   "description": "",
   "main": "",
   "scripts": {
-    "compile": "npx tsc",
+    "compile": "npx tsc --build --clean && npx tsc",
     "start": "node dist/index.js",
+    "deploy": "node dist/deployCommands.js",
     "both": "npm run compile & npm run start"
   },
   "keywords": [],
@@ -16,10 +17,10 @@
     "@types/node": "^16.4.0",
     "@types/ws": "^7.4.7",
     "ts-node": "^10.1.0",
-    "typescript": "^4.3.5"
+    "typescript": "^4.8.2"
   },
   "dependencies": {
-    "discord.js": "^13.0.1",
+    "discord.js": "^14.0",
     "dotenv": "^10.0.0"
   }
 }

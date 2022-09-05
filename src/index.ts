@@ -1,32 +1,23 @@
 import * as fs from "fs";
-import { Client, Message, Permissions, TextChannel, ThreadChannel } from "discord.js";
-import { resolve } from "path";
-import MapFile from "./classes/MapFile";
+import { ApplicationCommandType, Client, Collection, GatewayIntentBits, InteractionType, MessageType, PermissionFlagsBits, TextChannel, ThreadChannel } from "discord.js";
+import { join, resolve } from "path";
 import { config } from "dotenv";
 import MessageReplacer from "./classes/MessageReplacer";
 import SyncQueue from "./classes/SyncQueue";
 import Util from "./classes/Util";
 import * as assert from "assert";
+import Command from "./classes/Command";
+import ChatInputCommand from "./classes/ChatInputCommand";
 
 config({ path: resolve(__dirname, "../.env") });
 
 const client = new Client({
     allowedMentions: { parse: [] },
-    intents: ['GUILDS', 'GUILD_MESSAGES']
+    intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent]
 });
 const prefix = "!";
-let maps = new Map<string, MapFile>();
 // syncQueue need to be better implemented when arriving "/ commands"
 let syncQueue = new SyncQueue();
-
-function getServerMap(guildID: string): MapFile {
-    let map = maps.get(guildID);
-    if (map === undefined) {
-        map = new MapFile(resolve(__dirname, "../maps", guildID));
-        maps.set(guildID, map);
-    }
-    return map;
-}
 
 function getContent(commands: string[], index: number) {
     return commands.slice(index).join(" ");
@@ -39,102 +30,74 @@ client.on("ready", () => {
 
 client.on("messageCreate", (msg) => {
     syncQueue.add(async () => {
-        if (msg.type !== "DEFAULT" && msg.type !== "REPLY") return;
+        if (msg.type !== MessageType.Default && msg.type !== MessageType.Reply) return;
         if (msg.author.bot) return;
         if (msg.guild === null) return;
         if (client.user === null) return;
         if (!(msg.channel instanceof TextChannel || msg.channel instanceof ThreadChannel)) return;
         let botMember = msg.guild.members.cache.get(client.user.id);
         assert(botMember !== undefined);
-        if (!msg.channel.permissionsFor(botMember)?.has(Permissions.FLAGS.SEND_MESSAGES)) return;
-        let map = getServerMap(msg.guild.id);
-        if (!msg.content.startsWith(prefix) || !msg.member?.permissions.has(Permissions.FLAGS.MANAGE_MESSAGES)) {
+        if (!msg.channel.permissionsFor(botMember)?.has(PermissionFlagsBits.SendMessages)) return;
+        let map = Util.getServerMap(msg.guild.id);
+        if (!msg.content.startsWith(prefix) || !msg.member?.permissions.has(PermissionFlagsBits.ManageMessages)) {
             await MessageReplacer.replaceMsg(msg, map);
             return;
         }
-
-        let commands = msg.content.slice(prefix.length).trim().split(/\s+/);
-        if (commands[0] === "add") {
-            //let usage = "usage : " + prefix + "add \"`search value`\" \"`replace value`\" `[priority (-2 to 2)]`";
-            //const regex = /^\"\s*([^\n]+)\s*\"\s*\"\s*([^\n]+)\s*\"\s*([-+]?[0-2])?$/;
-            let usage = "usage : " + prefix + "add \"`search value`\" \"`replace value`\"";
-            const regex = /^\"\s*([^\n]+)\s*\"\s*\"\s*([^\n]+)\s*\"\s*$/;
-            let content = getContent(commands, 1);
-            let r = regex.exec(content)?.values();
-            if (r === undefined) {
-                msg.channel.send(usage);
-                return;
-            }
-            r.next();
-            let key: string = r.next().value;
-            let value: string = r.next().value;
-            //let priority = parseInt(r.next().value) + 2;
-            map.set(
-                MessageReplacer.normalizeKey(key).value,
-                [value.trim()] //, String(Number.isNaN(priority) ? 2 : priority)]
-            );
-            msg.react("✅");
-        } else if (commands[0] === "remove") {
-            let usage = "usage : " + prefix + "remove \"`search value`\"";
-            const regex = /^"\s*([^\n]+)\s*"\s*$/;
-            let content = getContent(commands, 1);
-            let r = regex.exec(content)?.values();
-            if (r === undefined) {
-                msg.channel.send(usage);
-                return;
-            }
-            r.next();
-            let key = MessageReplacer.normalizeKey(String(r.next().value)).value;
-            if (map.delete(key)) {
-                msg.react("✅");
-            } else {
-                msg.channel.send("La valeur " + key + " n'a pas été trouvé. Veuillez faire " + prefix + "list pour voir les valeurs possibles.");
-            }
-        } else if (commands[0] === "list" && commands.length === 1) {
-            if (map.size() === 0) {
-                msg.channel.send("Aucune association enregistré.");
-                return;
-            }
-            let content = "";
-            for (let key of map.keys()) {
-                let value = map.get(key);
-                assert(value !== undefined);
-                let line = "`" + key + "` ➔ `" + value[0].replaceAll("`", "``") + "`";
-                if (content.length + line.length + 1 >= Util.MESSAGE_MAX_LENGTH) {
-                    msg.channel.send(content);
-                    content = line;
-                } else {
-                    content += "\n" + line;
-                }
-            }
-            if (content.length !== 0) msg.channel.send(content);
-        } else if (commands[0] === "help" && commands.length === 1) {
-            msg.channel.send(
-                prefix + "add \"`search value`\" \"`replace value`\"\n"
-                + prefix + "remove \"`search value`\"\n"
-                + prefix + "list\n"
-            );
-        } else {
-            await MessageReplacer.replaceMsg(msg, map);
-        }
+        await MessageReplacer.replaceMsg(msg, map);
     });
 });
 
 client.on("messageUpdate", (_oldMsg, msg) => {
     syncQueue.add(async () => {
-        if (msg.type !== "DEFAULT" && msg.type !== "REPLY") return;
+        if (msg.type !== MessageType.Default && msg.type !== MessageType.Reply) return;
         if (msg.author.bot) return;
         if (!(msg.channel instanceof TextChannel || msg.channel instanceof ThreadChannel)) return;
         if (msg.guild === null) return;
         if (
             !msg.content.startsWith(prefix) ||
-            !msg.member?.permissions.has(Permissions.FLAGS.MANAGE_MESSAGES)
+            !msg.member?.permissions.has(PermissionFlagsBits.ManageMessages)
         ) {
-            let map = getServerMap(msg.guild.id);
+            let map = Util.getServerMap(msg.guild.id);
             await MessageReplacer.replaceMsg(msg, map);
             return;
         }
     })
+});
+
+let commands: {name: string, type: ApplicationCommandType, command: Command}[] = [];
+const commandsPath = join(__dirname, 'commands');
+const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
+
+for (const file of commandFiles) {
+	const filePath = join(commandsPath, file);
+	const command = require(filePath);
+    const cmd: Command = new command();
+	commands.push({name: cmd.getName(), type: cmd.getCommandType(), command: cmd});
+}
+
+client.on('interactionCreate', async interaction => {
+	if (interaction.type !== InteractionType.ApplicationCommand || !interaction.isRepliable) return;
+	let command = commands.find(o => o.name == interaction.commandName && o.type == interaction.commandType)?.command;
+    
+    if (command === undefined) {
+        interaction.reply("Une erreur est survenue : la commande demandé n'est pas connu dans la version actuelle du bot.\n");
+        return;
+    }
+    if (command.isServerOnlyCommand() && interaction.guild === null) {
+        interaction.reply("La commande demandé n'est disponible que dans les serveurs.");
+    }
+
+    if (interaction.commandType === ApplicationCommandType.ChatInput) {
+        try {
+            (command as ChatInputCommand).execute(interaction);
+        } catch (error) {
+            interaction.reply("La commande a rencontré une erreur.\n`" + error + "`");
+            console.log(error);
+        }
+        
+    } else {
+        throw new Error('Not implemented.');
+    }
 });
 
 client.login(process.env.BOT_TOKEN);

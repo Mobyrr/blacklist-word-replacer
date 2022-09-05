@@ -2,7 +2,7 @@
   "compilerOptions": {
     "module": "CommonJS",
     "outDir": "dist",
-    "target": "ES2021",
+    "target": "ESNext",
     "strict": true,
     "moduleResolution": "node",
     "forceConsistentCasingInFileNames": true,

@@ -1,16 +1,29 @@
-import { GuildMember, PermissionFlags, PermissionResolvable, Permissions, TextChannel, ThreadChannel, User, Webhook } from "discord.js";
+import { GuildMember, PermissionFlags, PermissionFlagsBits, PermissionResolvable, Permissions, PermissionsBitField, TextChannel, ThreadChannel, User, Webhook } from "discord.js";
+import { resolve } from "path";
+import MapFile from "./MapFile";
 import SyncQueue from "./SyncQueue";
 
 
 export default class Util {
+    public static wordsMaps = new Map<string, MapFile>();
+
+    public static getServerMap(guildID: string): MapFile {
+        let map = this.wordsMaps.get(guildID);
+        if (map === undefined) {
+            map = new MapFile(resolve(__dirname, "../../maps", guildID));
+            this.wordsMaps.set(guildID, map);
+        }
+        return map;
+    }
+
     public static readonly MESSAGE_MAX_LENGTH = 2000;
     public static readonly THREAD_MAX_LENGTH = 100;
     public static readonly EMBED_MAX_NUMBER = 10;
 
     //too lazy to make all the cases
     private static permissionToStrMap: Map<bigint, string> = new Map([
-        [Permissions.FLAGS.MANAGE_MESSAGES, "Gérer les messages"],
-        [Permissions.FLAGS.MANAGE_WEBHOOKS, "Gérer les webhooks"]
+        [PermissionFlagsBits.ManageMessages, "Gérer les messages"],
+        [PermissionFlagsBits.ManageWebhooks, "Gérer les webhooks"]
     ]);
     private static webhookQueue: SyncQueue = new SyncQueue();
 
@@ -35,7 +48,7 @@ export default class Util {
     }
 
     public static permissionToStr(permission: PermissionResolvable): string | undefined {
-        return this.permissionToStrMap.get(Permissions.resolve(permission));
+        return this.permissionToStrMap.get(PermissionsBitField.resolve(permission));
     }
 
     public static async getWebhook(channel: TextChannel): Promise<Webhook> {
@@ -45,9 +58,9 @@ export default class Util {
             return w.owner.id === channel.client.user?.id;
         });
         if (wh === undefined) {
-            let avatar = channel.client.user?.avatarURL({ format: "png" });
+            let avatar = channel.client.user?.avatarURL({ extension: "png" });
             if (avatar === null) avatar = undefined;
-            wh = await channel.createWebhook("Word replacer webhook", { avatar: avatar });
+            wh = await channel.createWebhook({ name: "Word replacer webhook", avatar: avatar});
         }
         return wh;
     }
