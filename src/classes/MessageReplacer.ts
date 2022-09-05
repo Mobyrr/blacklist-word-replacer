@@ -24,9 +24,11 @@ export default class MessageReplacer {
         assert(msg.client.user?.id !== undefined)
         let botMember = parentChannel.members.get(msg.client.user.id);
         assert(botMember !== undefined);
-        if (Util.sendMissingPermissions("Remplacement du message précédent échoué", botMember, msg.channel,
-            [PermissionFlagsBits.ManageWebhooks, PermissionFlagsBits.ManageMessages])) {
-            return;
+        let missingPermissions = Util.getMissingPermissionsMessage(botMember, msg.channel, 
+            [PermissionFlagsBits.ManageWebhooks, PermissionFlagsBits.ManageMessages])
+        if (missingPermissions !== "") {
+            msg.channel.send("Je n'ai pas les permissions suivantes pour remplacer le message : " + missingPermissions
+                + ".\n Si cela est volontaire, veuillez me retirer l'accès à ce salon.");
         }
         try { setTimeout(() => { msg.delete() }, 150) } catch { }
         assert(newMsg !== null && parentChannel instanceof TextChannel);

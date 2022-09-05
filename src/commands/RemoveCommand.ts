@@ -1,5 +1,5 @@
 import * as assert from 'assert';
-import { SlashCommandBuilder, ChatInputCommandInteraction, ApplicationCommandType } from "discord.js";
+import { SlashCommandBuilder, ChatInputCommandInteraction, ApplicationCommandType, PermissionFlagsBits } from "discord.js";
 import ChatInputCommand from '../classes/ChatInputCommand';
 import MessageReplacer from '../classes/MessageReplacer';
 import Util from '../classes/Util';
@@ -17,6 +17,10 @@ class RemoveCommand extends ChatInputCommand {
         return ApplicationCommandType.ChatInput;
     }
 
+    getRolePermissionsRequirement() {
+        return PermissionFlagsBits.ManageMessages;
+    }
+
     getCommandBuilder(): Omit<SlashCommandBuilder, any> {
         return new SlashCommandBuilder()
             .setName(this.name)
@@ -25,10 +29,8 @@ class RemoveCommand extends ChatInputCommand {
                 option.setName(this.searchValueField)
                 .setDescription("La valeur qui ne doit plus être remplacé")
                 .setRequired(true))
-    }
-
-    isServerOnlyCommand(): boolean {
-        return true;
+            .setDMPermission(false)
+            .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages);
     }
     
     execute(interaction: ChatInputCommandInteraction): void {

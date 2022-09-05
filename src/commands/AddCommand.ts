@@ -1,5 +1,5 @@
 import * as assert from 'assert';
-import { SlashCommandBuilder, ChatInputCommandInteraction, ApplicationCommandType } from "discord.js";
+import { SlashCommandBuilder, ChatInputCommandInteraction, ApplicationCommandType, PermissionFlagsBits } from "discord.js";
 import ChatInputCommand from '../classes/ChatInputCommand';
 import MapFile from '../classes/MapFile';
 import MessageReplacer from '../classes/MessageReplacer';
@@ -23,6 +23,10 @@ class AddCommand extends ChatInputCommand {
         return ApplicationCommandType.ChatInput;
     }
 
+    getRolePermissionsRequirement() {
+        return PermissionFlagsBits.ManageMessages;
+    }
+
     getCommandBuilder(): Omit<SlashCommandBuilder, any> {
         return new SlashCommandBuilder()
             .setName(this.name)
@@ -34,11 +38,9 @@ class AddCommand extends ChatInputCommand {
             .addStringOption(option =>
                 option.setName(this.replaceValueField)
                 .setDescription("La valeur qui remplacera la valeur remplacé")
-                .setRequired(true));
-    }
-
-    isServerOnlyCommand(): boolean {
-        return true;
+                .setRequired(true))
+            .setDMPermission(false)
+            .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages);
     }
     
     execute(interaction: ChatInputCommandInteraction): void {

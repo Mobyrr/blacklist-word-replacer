@@ -23,28 +23,30 @@ export default class Util {
     //too lazy to make all the cases
     private static permissionToStrMap: Map<bigint, string> = new Map([
         [PermissionFlagsBits.ManageMessages, "Gérer les messages"],
-        [PermissionFlagsBits.ManageWebhooks, "Gérer les webhooks"]
+        [PermissionFlagsBits.ManageWebhooks, "Gérer les webhooks"],
     ]);
+
     private static webhookQueue: SyncQueue = new SyncQueue();
 
-    public static sendMissingPermissions(failureMessage: string, member: GuildMember, channel: TextChannel | ThreadChannel,
-        permissions: PermissionResolvable[]): boolean {
+    public static getMissingPermissionsMessage(member: GuildMember, channel: TextChannel | ThreadChannel | null,
+        permissions: PermissionResolvable): string {
         let missingPermissions: (string | undefined)[] = [];
-        for (let p of permissions) {
-            if (!channel.permissionsFor(member)?.has(p)) {
-                missingPermissions.push(this.permissionToStr(p));
-            }
+        let missing: string[];
+        if (channel !== null) {
+            missing = channel.permissionsFor(member)?.missing(permissions);
+        } else {
+            missing = member.permissions.missing(permissions);
+        }
+        for (let p of missing) {
+            missingPermissions.push(this.permissionToStr(p as any));
         }
         if (missingPermissions.length === 1) {
-            channel.send(failureMessage + "\n" + "Raison : " + member.user.tag + " n'a pas la permission \"" + missingPermissions[0] + "\"");
-            return true;
+            return "\"" + missingPermissions[0] + "\"";
         } else if (missingPermissions.length > 1) {
-            channel.send(failureMessage + "\n" + "Raison : " + member.user.tag + " n'a pas les permissions \""
-                + missingPermissions.slice(0, missingPermissions.length - 1).join("\", \"")
-                + "\" et \"" + missingPermissions[missingPermissions.length - 1] + "\"");
-            return true;
+            return "\"" + missingPermissions.slice(0, missingPermissions.length - 1).join("\", \"")
+                + "\" et \"" + missingPermissions[missingPermissions.length - 1] + "\"";
         }
-        return false;
+        return "";
     }
 
     public static permissionToStr(permission: PermissionResolvable): string | undefined {

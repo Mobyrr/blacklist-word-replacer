@@ -1,11 +1,10 @@
 import * as fs from "fs";
-import { ApplicationCommandType, Client, Collection, GatewayIntentBits, InteractionType, MessageType, PermissionFlagsBits, TextChannel, ThreadChannel } from "discord.js";
+import { ApplicationCommandType, Client, GatewayIntentBits, GuildMember, InteractionType, MessageType, PermissionFlagsBits, TextChannel, ThreadChannel } from "discord.js";
 import { join, resolve } from "path";
 import { config } from "dotenv";
 import MessageReplacer from "./classes/MessageReplacer";
 import SyncQueue from "./classes/SyncQueue";
 import Util from "./classes/Util";
-import * as assert from "assert";
 import Command from "./classes/Command";
 import ChatInputCommand from "./classes/ChatInputCommand";
 
@@ -15,8 +14,6 @@ const client = new Client({
     allowedMentions: { parse: [] },
     intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent]
 });
-const prefix = "!";
-// syncQueue need to be better implemented when arriving "/ commands"
 let syncQueue = new SyncQueue();
 
 function getContent(commands: string[], index: number) {
@@ -36,13 +33,9 @@ client.on("messageCreate", (msg) => {
         if (client.user === null) return;
         if (!(msg.channel instanceof TextChannel || msg.channel instanceof ThreadChannel)) return;
         let botMember = msg.guild.members.cache.get(client.user.id);
-        assert(botMember !== undefined);
+        if (botMember === undefined) return;
         if (!msg.channel.permissionsFor(botMember)?.has(PermissionFlagsBits.SendMessages)) return;
         let map = Util.getServerMap(msg.guild.id);
-        if (!msg.content.startsWith(prefix) || !msg.member?.permissions.has(PermissionFlagsBits.ManageMessages)) {
-            await MessageReplacer.replaceMsg(msg, map);
-            return;
-        }
         await MessageReplacer.replaceMsg(msg, map);
     });
 });
@@ -53,14 +46,8 @@ client.on("messageUpdate", (_oldMsg, msg) => {
         if (msg.author.bot) return;
         if (!(msg.channel instanceof TextChannel || msg.channel instanceof ThreadChannel)) return;
         if (msg.guild === null) return;
-        if (
-            !msg.content.startsWith(prefix) ||
-            !msg.member?.permissions.has(PermissionFlagsBits.ManageMessages)
-        ) {
-            let map = Util.getServerMap(msg.guild.id);
-            await MessageReplacer.replaceMsg(msg, map);
-            return;
-        }
+        let map = Util.getServerMap(msg.guild.id);
+        await MessageReplacer.replaceMsg(msg, map);
     })
 });
 
@@ -83,10 +70,21 @@ client.on('interactionCreate', async interaction => {
         interaction.reply("Une erreur est survenue : la commande demandé n'est pas connu dans la version actuelle du bot.\n");
         return;
     }
-    if (command.isServerOnlyCommand() && interaction.guild === null) {
-        interaction.reply("La commande demandé n'est disponible que dans les serveurs.");
+    if (interaction.member !== null) {
+        let member: GuildMember;
+        if (interaction.member instanceof GuildMember) {
+            member = interaction.member;
+        } else {
+            interaction.reply("Vos données de membre n'ont pas été trouvé.");
+            return;
+        }
+        if (!member.permissions.has(command.getRolePermissionsRequirement())) {
+            interaction.reply({content: `Vos permissions de rôles suivants sont manquants pour la commande demandé : ` 
+                + Util.getMissingPermissionsMessage(member, null, command.getRolePermissionsRequirement()),
+                ephemeral: true});
+            return;
+        }
     }
-
     if (interaction.commandType === ApplicationCommandType.ChatInput) {
         try {
             (command as ChatInputCommand).execute(interaction);
@@ -94,7 +92,6 @@ client.on('interactionCreate', async interaction => {
             interaction.reply("La commande a rencontré une erreur.\n`" + error + "`");
             console.log(error);
         }
-        
     } else {
         throw new Error('Not implemented.');
     }
