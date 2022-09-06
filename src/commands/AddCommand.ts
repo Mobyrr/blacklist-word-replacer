@@ -11,9 +11,8 @@ class AddCommand extends ChatInputCommand {
     private searchValueField = "search";
     private replaceValueField = "replace_with";
 
-    private searchValueMaxLength = 200;
-    private replaceValueMaxLength = 400;
-    private valueLengthInfo = `La valeur recherché doit faire au maximum ${this.searchValueMaxLength} caractères et la valeur de remplacement doit faire au maximum ${this.replaceValueMaxLength} caractères.`;
+    static readonly SEARCH_VALUE_MAX_LENGTH: number = 200;
+    static readonly REPLACE_VALUE_MAX_LENGTH: number = 400;
 
     getName(): string {
         return this.name;
@@ -34,11 +33,13 @@ class AddCommand extends ChatInputCommand {
             .addStringOption(option =>
                 option.setName(this.searchValueField)
                 .setDescription("La valeur à remplacer")
-                .setRequired(true))
+                .setRequired(true)
+                .setMaxLength(AddCommand.SEARCH_VALUE_MAX_LENGTH))
             .addStringOption(option =>
                 option.setName(this.replaceValueField)
-                .setDescription("La valeur qui remplacera la valeur remplacé")
-                .setRequired(true))
+                .setDescription("La valeur qui remplacera la valeur à remplacé")
+                .setRequired(true)
+                .setMaxLength(AddCommand.REPLACE_VALUE_MAX_LENGTH))
             .setDMPermission(false)
             .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages);
     }
@@ -53,13 +54,6 @@ class AddCommand extends ChatInputCommand {
             return;
         }
         key = MessageReplacer.normalizeKey(key).value;
-        if (key.length > this.searchValueMaxLength) {
-            interaction.reply("La valeur recherché est trop grande ! " + this.valueLengthInfo);
-            return;
-        } else if (value.length > this.replaceValueMaxLength) {
-            interaction.reply("La valeur de remplacement est trop grande ! " + this.valueLengthInfo);
-            return;
-        }
         if (map.get(key) !== undefined) {
             interaction.reply("Remplacement modifié. `" + key + "` ➔ `" + value.trim().replaceAll("`", "``") + "`");
         } else {

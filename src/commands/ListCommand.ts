@@ -7,8 +7,6 @@ class ListCommand extends ChatInputCommand {
     private name = "list";
     private description = "Listez toutes les valeurs qui doivent se faire remplacer et leurs valeurs de remplacements";
 
-    private andMoreMessage = "Et d'autres encore ... (pour l'instant impossible à visualiser)";
-
     getName(): string {
         return this.name;
     }
@@ -29,27 +27,28 @@ class ListCommand extends ChatInputCommand {
             .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages);
     }
     
-    execute(interaction: ChatInputCommandInteraction): void {
-        assert(interaction.guild !== null);
+    execute(interaction: ChatInputCommandInteraction) {
+        assert(interaction.guild !== null && interaction.channel !== null);
         let map = Util.getServerMap(interaction.guild.id);
-        
         if (map.size() === 0) {
             interaction.reply("Aucune association enregistré.");
             return;
         }
         let content = "";
+        let firstMessage = true;
         for (let key of map.keys()) {
             let value = map.get(key);
             assert(value !== undefined);
             let line = "`" + key + "` ➔ `" + value[0].replaceAll("`", "``") + "`";
-            if (content.length + line.length + this.andMoreMessage.length + 1 >= Util.MESSAGE_MAX_LENGTH) {
-                interaction.reply(content + "\n" + this.andMoreMessage);
-                return;
+            if (content.length + line.length >= Util.MESSAGE_MAX_LENGTH) {
+                firstMessage ? interaction.reply(content) : interaction.channel.send(content);
+                firstMessage = false;
+                content = "";
             } else {
                 content += "\n" + line;
             }
         }
-        interaction.reply(content);
+        if (content !== "") firstMessage ? interaction.reply(content) : interaction.channel.send(content);
     }
 }
 

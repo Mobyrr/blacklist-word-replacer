@@ -9,6 +9,8 @@ class RemoveCommand extends ChatInputCommand {
     private description = "Supprimez une valeur à remplacer";
     private searchValueField = "search";
 
+    static readonly SEARCH_VALUE_MAX_LENGTH: number = 200;
+
     getName(): string {
         return this.name;
     }
@@ -28,7 +30,8 @@ class RemoveCommand extends ChatInputCommand {
             .addStringOption(option =>
                 option.setName(this.searchValueField)
                 .setDescription("La valeur qui ne doit plus être remplacé")
-                .setRequired(true))
+                .setRequired(true)
+                .setMaxLength(RemoveCommand.SEARCH_VALUE_MAX_LENGTH))
             .setDMPermission(false)
             .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages);
     }
