@@ -5,10 +5,10 @@ import { config } from "dotenv";
 import MessageReplacer from "./classes/MessageReplacer";
 import SyncQueue from "./classes/SyncQueue";
 import Util from "./classes/Util";
-import ChatInputCommand from "./classes/ChatInputCommand";
+import ChatInputCommand from "./classes/Commands/ChatInputCommand";
 import botCommands from "./commands/Commands";
-import MessageContextMenuCommand from "./classes/MessageContextMenuCommand";
-import ChatInputCommandGroup from "./classes/ChatInputCommandGroup";
+import MessageContextMenuCommand from "./classes/Commands/MessageContextMenuCommand";
+import ChatInputCommandGroup from "./classes/Commands/ChatInputCommandGroup";
 
 config({ path: resolve(__dirname, "../.env") });
 
@@ -49,7 +49,23 @@ client.on("messageUpdate", (_oldMsg, msg) => {
 });
 
 client.on('interactionCreate', async interaction => {
-    if (interaction.type !== InteractionType.ApplicationCommand || !interaction.isRepliable) return;
+    if (interaction.isAutocomplete()) {
+        let command = botCommands.find(c => c.getName() == interaction.commandName && c.getCommandType() == interaction.commandType);
+        if (command === undefined) return;
+        let suggestions: string[] = [];
+        if (command instanceof ChatInputCommandGroup) {
+            let subCommand = command.getSubCommands().find(sb => sb.getName() === interaction.options.getSubcommand());
+            if (subCommand === undefined) return;
+            suggestions = subCommand.getAutocompletions(interaction);
+        } else if (command instanceof ChatInputCommand) {
+            suggestions = command.getAutocompletions(interaction);
+        }
+        interaction.respond(suggestions.slice(0, 25).map(
+            x => ({name: x.slice(0, 100), value: x.slice(0, 100)})
+        ));
+        return;
+    }
+    if (interaction.type !== InteractionType.ApplicationCommand || !interaction.isRepliable()) return;
     let command = botCommands.find(c => c.getName() == interaction.commandName && c.getCommandType() == interaction.commandType);
     if (command === undefined) {
         interaction.reply("Une erreur est survenue : la commande demandé n'est pas connu dans la version actuelle du bot.\n");
@@ -62,7 +78,7 @@ client.on('interactionCreate', async interaction => {
                 if (subCommand === undefined) {
                     interaction.reply("Une erreur est survenue : la sous-commande demandé n'est pas connu dans la version actuelle du bot.\n");
                     return;
-                } else {}
+                }
                 subCommand.execute(interaction);
             } else {
                 (command as ChatInputCommand).execute(interaction);
@@ -73,7 +89,7 @@ client.on('interactionCreate', async interaction => {
             throw new Error('Not implemented.');
         }
     } catch (error) {
-        interaction.reply("La commande a rencontré une erreur.\n`" + error + "`");
+        if (interaction.isRepliable()) interaction.reply("La commande a rencontré une erreur.\n`" + error + "`");
         console.log(error);
     }
 });

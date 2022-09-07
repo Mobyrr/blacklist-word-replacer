@@ -1,6 +1,6 @@
 import { SlashCommandBuilder } from "discord.js";
-import ChatInputCommandGroup from "../../classes/ChatInputCommandGroup";
-import ChatInputSubCommand from "../../classes/ChatInputSubCommand";
+import ChatInputCommandGroup from "../../classes/Commands/ChatInputCommandGroup";
+import ChatInputSubCommand from "../../classes/Commands/ChatInputSubCommand";
 import AddCommand from "./AddCommand";
 import ListCommand from "./ListCommand";
 import RemoveCommand from "./RemoveCommand";

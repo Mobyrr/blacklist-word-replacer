@@ -1,6 +1,6 @@
 import * as assert from 'assert';
-import { ChatInputCommandInteraction, ApplicationCommandType, SlashCommandSubcommandBuilder } from "discord.js";
-import ChatInputSubCommand from '../../classes/ChatInputSubCommand';
+import { ChatInputCommandInteraction, ApplicationCommandType, SlashCommandSubcommandBuilder, AutocompleteInteraction } from "discord.js";
+import ChatInputSubCommand from '../../classes/Commands/ChatInputSubCommand';
 import MapFile from '../../classes/MapFile';
 import MessageReplacer from '../../classes/MessageReplacer';
 import Util from '../../classes/Util';
@@ -11,8 +11,8 @@ class AddCommand extends ChatInputSubCommand {
     private searchValueField = "search";
     private replaceValueField = "replace_with";
 
-    static readonly SEARCH_VALUE_MAX_LENGTH: number = 200;
-    static readonly REPLACE_VALUE_MAX_LENGTH: number = 400;
+    static readonly SEARCH_VALUE_MAX_LENGTH: number = 100;
+    static readonly REPLACE_VALUE_MAX_LENGTH: number = 500;
 
     getName(): string {
         return this.name;

@@ -1,6 +1,6 @@
 import * as assert from 'assert';
 import { ChatInputCommandInteraction, SlashCommandSubcommandBuilder } from "discord.js";
-import ChatInputSubCommand from '../../classes/ChatInputSubCommand';
+import ChatInputSubCommand from '../../classes/Commands/ChatInputSubCommand';
 import Util from '../../classes/Util';
 
 class ListCommand extends ChatInputSubCommand {

@@ -1,5 +1,5 @@
 import PingCommand from "./PingCommand";
-import Command from "../classes/Command";
+import Command from "../classes/Commands/Command";
 import MessageReplacerCommand from "./MessageReplacerCommand/MessageReplacerCommand";
 
 let botCommands: Command[] = [

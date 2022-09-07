@@ -1,4 +1,4 @@
-import { ApplicationCommandType, ChatInputCommandInteraction } from "discord.js";
+import { ApplicationCommandType, AutocompleteInteraction, ChatInputCommandInteraction } from "discord.js";
 import Command from "./Command";
 
 export default abstract class ChatInputCommand extends Command {
@@ -6,4 +6,7 @@ export default abstract class ChatInputCommand extends Command {
         return ApplicationCommandType.ChatInput;
     };
     abstract execute(interaction: ChatInputCommandInteraction): void;
+    getAutocompletions(interaction: AutocompleteInteraction): string[] {
+        return [];
+    };
 }

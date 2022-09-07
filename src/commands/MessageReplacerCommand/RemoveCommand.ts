@@ -1,6 +1,6 @@
 import * as assert from 'assert';
-import { ChatInputCommandInteraction, SlashCommandSubcommandBuilder } from "discord.js";
-import ChatInputSubCommand from '../../classes/ChatInputSubCommand';
+import { AutocompleteInteraction, ChatInputCommandInteraction, SlashCommandSubcommandBuilder } from "discord.js";
+import ChatInputSubCommand from '../../classes/Commands/ChatInputSubCommand';
 import MessageReplacer from '../../classes/MessageReplacer';
 import Util from '../../classes/Util';
 import AddCommand from './AddCommand';
@@ -24,7 +24,8 @@ class RemoveCommand extends ChatInputSubCommand {
                 option.setName(this.searchValueField)
                 .setDescription("La valeur qui ne doit plus être remplacé")
                 .setRequired(true)
-                .setMaxLength(RemoveCommand.SEARCH_VALUE_MAX_LENGTH));
+                .setMaxLength(RemoveCommand.SEARCH_VALUE_MAX_LENGTH)
+                .setAutocomplete(true));
     }
     
     execute(interaction: ChatInputCommandInteraction) {
@@ -39,6 +40,19 @@ class RemoveCommand extends ChatInputSubCommand {
             interaction.reply("`" + key + "` ➔ `" + value[0]?.trim().replaceAll("`", "``") + "` supprimé.");
         }
         map.delete(key);
+    }
+
+    getAutocompletions(interaction: AutocompleteInteraction) {
+        assert(interaction.guild !== null);
+        let map = Util.getServerMap(interaction.guild.id);
+        let suggestions: string[] = [];
+        for (let key of map.keys()) {
+            if (key.startsWith(interaction.options.getFocused())) {
+                suggestions.push(key);
+                if (suggestions.length >= 25) break;
+            }
+        }
+        return suggestions.sort();
     }
 }
 

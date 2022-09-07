@@ -1,5 +1,5 @@
 import { SlashCommandBuilder, ChatInputCommandInteraction } from "discord.js";
-import ChatInputCommand from '../classes/ChatInputCommand';
+import ChatInputCommand from '../classes/Commands/ChatInputCommand';
 
 class PingCommand extends ChatInputCommand {
     private name = "ping";
