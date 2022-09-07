@@ -1,15 +1,14 @@
-import { readdirSync } from "fs";
-import { join } from "path";
+import AddCommand from "../commands/AddCommand";
+import ListCommand from "../commands/ListCommand";
+import PingCommand from "../commands/PingCommand";
+import RemoveCommand from "../commands/RemoveCommand";
 import Command from "./Command";
 
-const botCommands: Command[] = [];
-const commandsPath = join(__dirname, '../commands');
-const commandFiles = readdirSync(commandsPath).filter(file => file.endsWith('.js'));
-
-for (const file of commandFiles) {
-	const filePath = join(commandsPath, file);
-	const command: Command = new (require(filePath))();
-	botCommands.push(command);
-}
+let botCommands: Command[] = [
+	new PingCommand(),
+	new ListCommand(),
+	new AddCommand(),
+	new RemoveCommand()
+];
 
 export default botCommands;

@@ -1,12 +1,12 @@
 import * as assert from 'assert'
-import { Client, REST, Routes, SlashCommandBuilder } from "discord.js";
+import { Client, ContextMenuCommandBuilder, REST, Routes, SlashCommandBuilder } from "discord.js";
 import { config } from 'dotenv';
 import { resolve } from "path";
 import botCommands from './classes/Commands';
 
 config({ path: resolve(__dirname, "../.env") });
 
-const commands: Omit<SlashCommandBuilder, any>[] = [];
+const commands: (Omit<SlashCommandBuilder, any> | ContextMenuCommandBuilder)[] = [];
 
 for (let cmd of botCommands) {
 	commands.push(cmd.getCommandBuilder());

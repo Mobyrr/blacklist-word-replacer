@@ -1,5 +1,4 @@
-import * as assert from 'assert'
-import { SlashCommandBuilder, Interaction, CacheType, InteractionType, ApplicationCommandType } from "discord.js";
+import { SlashCommandBuilder, ChatInputCommandInteraction } from "discord.js";
 import ChatInputCommand from '../classes/ChatInputCommand';
 
 class PingCommand extends ChatInputCommand {
@@ -10,22 +9,15 @@ class PingCommand extends ChatInputCommand {
         return this.name;
     }
 
-    getCommandType(): ApplicationCommandType {
-        return ApplicationCommandType.ChatInput;
-    }
-
     getCommandBuilder(): SlashCommandBuilder {
         return new SlashCommandBuilder()
             .setName(this.name)
             .setDescription(this.description);
     }
     
-    execute(interaction: Interaction<CacheType>): void {
-        assert(interaction.type === InteractionType.ApplicationCommand);
-        interaction.type
-        if (!interaction.isRepliable) return;
+    execute(interaction: ChatInputCommandInteraction): void {
         interaction.reply("Pong !");
     }
 }
 
-export = PingCommand;
+export default PingCommand;

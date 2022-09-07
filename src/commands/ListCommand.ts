@@ -1,5 +1,5 @@
 import * as assert from 'assert';
-import { SlashCommandBuilder, ChatInputCommandInteraction, ApplicationCommandType, PermissionFlagsBits } from "discord.js";
+import { SlashCommandBuilder, ChatInputCommandInteraction } from "discord.js";
 import ChatInputCommand from '../classes/ChatInputCommand';
 import Util from '../classes/Util';
 
@@ -11,20 +11,12 @@ class ListCommand extends ChatInputCommand {
         return this.name;
     }
 
-    getCommandType(): ApplicationCommandType {
-        return ApplicationCommandType.ChatInput;
-    }
-
-    getRolePermissionsRequirement() {
-        return PermissionFlagsBits.ManageMessages;
-    }
-
     getCommandBuilder(): Omit<SlashCommandBuilder, any> {
         return new SlashCommandBuilder()
             .setName(this.name)
             .setDescription(this.description)
             .setDMPermission(false)
-            .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages);
+            .setDefaultMemberPermissions('0');
     }
     
     execute(interaction: ChatInputCommandInteraction) {
@@ -52,4 +44,4 @@ class ListCommand extends ChatInputCommand {
     }
 }
 
-export = ListCommand;
+export default ListCommand;

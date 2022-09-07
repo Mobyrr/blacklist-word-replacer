@@ -1,26 +1,19 @@
 import * as assert from 'assert';
-import { SlashCommandBuilder, ChatInputCommandInteraction, ApplicationCommandType, PermissionFlagsBits } from "discord.js";
+import { SlashCommandBuilder, ChatInputCommandInteraction } from "discord.js";
 import ChatInputCommand from '../classes/ChatInputCommand';
 import MessageReplacer from '../classes/MessageReplacer';
 import Util from '../classes/Util';
+import AddCommand from './AddCommand';
 
 class RemoveCommand extends ChatInputCommand {
     private name = "remove";
     private description = "Supprimez une valeur à remplacer";
     private searchValueField = "search";
 
-    static readonly SEARCH_VALUE_MAX_LENGTH: number = 200;
+    static readonly SEARCH_VALUE_MAX_LENGTH: number = AddCommand.SEARCH_VALUE_MAX_LENGTH;
 
     getName(): string {
         return this.name;
-    }
-
-    getCommandType(): ApplicationCommandType {
-        return ApplicationCommandType.ChatInput;
-    }
-
-    getRolePermissionsRequirement() {
-        return PermissionFlagsBits.ManageMessages;
     }
 
     getCommandBuilder(): Omit<SlashCommandBuilder, any> {
@@ -33,7 +26,7 @@ class RemoveCommand extends ChatInputCommand {
                 .setRequired(true)
                 .setMaxLength(RemoveCommand.SEARCH_VALUE_MAX_LENGTH))
             .setDMPermission(false)
-            .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages);
+            .setDefaultMemberPermissions('0');
     }
     
     execute(interaction: ChatInputCommandInteraction): void {
@@ -51,4 +44,4 @@ class RemoveCommand extends ChatInputCommand {
     }
 }
 
-export = RemoveCommand;
+export default RemoveCommand;

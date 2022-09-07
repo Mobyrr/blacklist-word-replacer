@@ -1,5 +1,5 @@
 import * as assert from 'assert';
-import { SlashCommandBuilder, ChatInputCommandInteraction, ApplicationCommandType, PermissionFlagsBits } from "discord.js";
+import { SlashCommandBuilder, ChatInputCommandInteraction, ApplicationCommandType } from "discord.js";
 import ChatInputCommand from '../classes/ChatInputCommand';
 import MapFile from '../classes/MapFile';
 import MessageReplacer from '../classes/MessageReplacer';
@@ -22,10 +22,6 @@ class AddCommand extends ChatInputCommand {
         return ApplicationCommandType.ChatInput;
     }
 
-    getRolePermissionsRequirement() {
-        return PermissionFlagsBits.ManageMessages;
-    }
-
     getCommandBuilder(): Omit<SlashCommandBuilder, any> {
         return new SlashCommandBuilder()
             .setName(this.name)
@@ -41,7 +37,7 @@ class AddCommand extends ChatInputCommand {
                 .setRequired(true)
                 .setMaxLength(AddCommand.REPLACE_VALUE_MAX_LENGTH))
             .setDMPermission(false)
-            .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages);
+            .setDefaultMemberPermissions('0');
     }
     
     execute(interaction: ChatInputCommandInteraction): void {
@@ -66,4 +62,4 @@ class AddCommand extends ChatInputCommand {
     }
 }
 
-export = AddCommand;
+export default AddCommand;

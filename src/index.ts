@@ -1,5 +1,5 @@
 import * as fs from "fs";
-import { ApplicationCommandType, ChannelType, Client, GatewayIntentBits, GuildMember, InteractionType, Message, MessageType, PermissionFlagsBits } from "discord.js";
+import { ApplicationCommandType, ChannelType, Client, GatewayIntentBits, InteractionType, Message, MessageType, PermissionFlagsBits } from "discord.js";
 import { resolve } from "path";
 import { config } from "dotenv";
 import MessageReplacer from "./classes/MessageReplacer";
@@ -7,6 +7,7 @@ import SyncQueue from "./classes/SyncQueue";
 import Util from "./classes/Util";
 import ChatInputCommand from "./classes/ChatInputCommand";
 import botCommands from "./classes/Commands";
+import MessageContextMenuCommand from "./classes/MessageContextMenuCommand";
 
 config({ path: resolve(__dirname, "../.env") });
 
@@ -53,26 +54,11 @@ client.on('interactionCreate', async interaction => {
         interaction.reply("Une erreur est survenue : la commande demandé n'est pas connu dans la version actuelle du bot.\n");
         return;
     }
-    if (interaction.member !== null) {
-        let member: GuildMember;
-        if (interaction.member instanceof GuildMember) {
-            member = interaction.member;
-        } else {
-            interaction.reply("Vos données de membre n'ont pas été trouvé.");
-            return;
-        }
-        if (!member.permissions.has(command.getRolePermissionsRequirement())) {
-            interaction.reply({
-                content: `Vos permissions de rôles suivants sont manquants pour la commande demandé : `
-                    + Util.getMissingPermissionsMessage(member, null, command.getRolePermissionsRequirement()),
-                ephemeral: true
-            });
-            return;
-        }
-    }
     try {
         if (interaction.commandType === ApplicationCommandType.ChatInput) {
             (command as ChatInputCommand).execute(interaction);
+        } else if (interaction.commandType == ApplicationCommandType.Message) {
+            (command as MessageContextMenuCommand).execute(interaction);
         } else {
             throw new Error('Not implemented.');
         }
