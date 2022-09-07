@@ -19,6 +19,12 @@ Create a .env file in the project root and replace `MYTOKEN` with your bot's tok
 BOT_TOKEN=MYTOKEN
 ```
 
+### Deploy commands
+You need to deploy commands to make slash commands visible and usable
+```bash
+npm run deploy
+```
+
 ### Run
 
 ```bash
