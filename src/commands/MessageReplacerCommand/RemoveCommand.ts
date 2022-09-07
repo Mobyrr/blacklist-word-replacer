@@ -1,35 +1,33 @@
 import * as assert from 'assert';
-import { SlashCommandBuilder, ChatInputCommandInteraction } from "discord.js";
-import ChatInputCommand from '../classes/ChatInputCommand';
-import MessageReplacer from '../classes/MessageReplacer';
-import Util from '../classes/Util';
+import { ChatInputCommandInteraction, SlashCommandSubcommandBuilder } from "discord.js";
+import ChatInputSubCommand from '../../classes/ChatInputSubCommand';
+import MessageReplacer from '../../classes/MessageReplacer';
+import Util from '../../classes/Util';
 import AddCommand from './AddCommand';
 
-class RemoveCommand extends ChatInputCommand {
+class RemoveCommand extends ChatInputSubCommand {
     private name = "remove";
     private description = "Supprimez une valeur à remplacer";
     private searchValueField = "search";
 
     static readonly SEARCH_VALUE_MAX_LENGTH: number = AddCommand.SEARCH_VALUE_MAX_LENGTH;
 
-    getName(): string {
+    getName() {
         return this.name;
     }
 
-    getCommandBuilder(): Omit<SlashCommandBuilder, any> {
-        return new SlashCommandBuilder()
+    getCommandBuilder() {
+        return new SlashCommandSubcommandBuilder()
             .setName(this.name)
             .setDescription(this.description)
             .addStringOption(option =>
                 option.setName(this.searchValueField)
                 .setDescription("La valeur qui ne doit plus être remplacé")
                 .setRequired(true)
-                .setMaxLength(RemoveCommand.SEARCH_VALUE_MAX_LENGTH))
-            .setDMPermission(false)
-            .setDefaultMemberPermissions('0');
+                .setMaxLength(RemoveCommand.SEARCH_VALUE_MAX_LENGTH));
     }
     
-    execute(interaction: ChatInputCommandInteraction): void {
+    execute(interaction: ChatInputCommandInteraction) {
         assert(interaction.guild !== null);
         let map = Util.getServerMap(interaction.guild.id);
         let key: string = interaction.options.getString(this.searchValueField, true);

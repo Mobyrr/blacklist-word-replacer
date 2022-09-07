@@ -6,8 +6,9 @@ import MessageReplacer from "./classes/MessageReplacer";
 import SyncQueue from "./classes/SyncQueue";
 import Util from "./classes/Util";
 import ChatInputCommand from "./classes/ChatInputCommand";
-import botCommands from "./classes/Commands";
+import botCommands from "./commands/Commands";
 import MessageContextMenuCommand from "./classes/MessageContextMenuCommand";
+import ChatInputCommandGroup from "./classes/ChatInputCommandGroup";
 
 config({ path: resolve(__dirname, "../.env") });
 
@@ -56,7 +57,16 @@ client.on('interactionCreate', async interaction => {
     }
     try {
         if (interaction.commandType === ApplicationCommandType.ChatInput) {
-            (command as ChatInputCommand).execute(interaction);
+            if (command instanceof ChatInputCommandGroup) {
+                let subCommand = command.getSubCommands().find(sb => sb.getName() === interaction.options.getSubcommand());
+                if (subCommand === undefined) {
+                    interaction.reply("Une erreur est survenue : la sous-commande demandé n'est pas connu dans la version actuelle du bot.\n");
+                    return;
+                } else {}
+                subCommand.execute(interaction);
+            } else {
+                (command as ChatInputCommand).execute(interaction);
+            }
         } else if (interaction.commandType == ApplicationCommandType.Message) {
             (command as MessageContextMenuCommand).execute(interaction);
         } else {

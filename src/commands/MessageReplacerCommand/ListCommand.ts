@@ -1,22 +1,20 @@
 import * as assert from 'assert';
-import { SlashCommandBuilder, ChatInputCommandInteraction } from "discord.js";
-import ChatInputCommand from '../classes/ChatInputCommand';
-import Util from '../classes/Util';
+import { ChatInputCommandInteraction, SlashCommandSubcommandBuilder } from "discord.js";
+import ChatInputSubCommand from '../../classes/ChatInputSubCommand';
+import Util from '../../classes/Util';
 
-class ListCommand extends ChatInputCommand {
+class ListCommand extends ChatInputSubCommand {
     private name = "list";
     private description = "Listez toutes les valeurs qui doivent se faire remplacer et leurs valeurs de remplacements";
 
-    getName(): string {
+    getName() {
         return this.name;
     }
 
-    getCommandBuilder(): Omit<SlashCommandBuilder, any> {
-        return new SlashCommandBuilder()
+    getCommandBuilder() {
+        return new SlashCommandSubcommandBuilder()
             .setName(this.name)
-            .setDescription(this.description)
-            .setDMPermission(false)
-            .setDefaultMemberPermissions('0');
+            .setDescription(this.description);
     }
     
     execute(interaction: ChatInputCommandInteraction) {

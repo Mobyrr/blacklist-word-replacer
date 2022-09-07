@@ -2,7 +2,7 @@ import * as assert from 'assert'
 import { Client, ContextMenuCommandBuilder, REST, Routes, SlashCommandBuilder } from "discord.js";
 import { config } from 'dotenv';
 import { resolve } from "path";
-import botCommands from './classes/Commands';
+import botCommands from './commands/Commands';
 
 config({ path: resolve(__dirname, "../.env") });
 
