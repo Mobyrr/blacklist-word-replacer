@@ -1,5 +1,5 @@
 import * as assert from "assert";
-import { Message, TextChannel, ThreadChannel, MessageType, PermissionFlagsBits, Attachment, Embed, EmbedBuilder, APIEmbed, MessageSelectOption } from "discord.js";
+import { Message, TextChannel, ThreadChannel, MessageType, PermissionFlagsBits, Attachment, EmbedBuilder } from "discord.js";
 import MapFile from "./MapFile";
 import Util from "./Util";
 
@@ -24,7 +24,7 @@ export default class MessageReplacer {
         assert(msg.client.user?.id !== undefined)
         let botMember = parentChannel.members.get(msg.client.user.id);
         assert(botMember !== undefined);
-        let missingPermissions = Util.getMissingPermissionsMessage(botMember, msg.channel, 
+        let missingPermissions = Util.getMissingPermissionsMessage(botMember, msg.channel,
             [PermissionFlagsBits.ManageWebhooks, PermissionFlagsBits.ManageMessages])
         if (missingPermissions !== "") {
             msg.channel.send("Je n'ai pas les permissions suivantes pour remplacer le message : " + missingPermissions

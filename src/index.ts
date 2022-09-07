@@ -61,7 +61,7 @@ client.on('interactionCreate', async interaction => {
             suggestions = command.getAutocompletions(interaction);
         }
         interaction.respond(suggestions.slice(0, 25).map(
-            x => ({name: x.slice(0, 100), value: x.slice(0, 100)})
+            x => ({ name: x.slice(0, 100), value: x.slice(0, 100) })
         ));
         return;
     }
@@ -89,7 +89,7 @@ client.on('interactionCreate', async interaction => {
             throw new Error('Not implemented.');
         }
     } catch (error) {
-        if (interaction.isRepliable()) interaction.reply("La commande a rencontré une erreur.\n`" + error + "`");
+        interaction.reply("La commande a rencontré une erreur.\n`" + error + "`");
         console.log(error);
     }
 });

@@ -1,5 +1,5 @@
 import * as assert from 'assert';
-import { ChatInputCommandInteraction, ApplicationCommandType, SlashCommandSubcommandBuilder, AutocompleteInteraction } from "discord.js";
+import { ChatInputCommandInteraction, ApplicationCommandType, SlashCommandSubcommandBuilder } from "discord.js";
 import ChatInputSubCommand from '../../classes/Commands/ChatInputSubCommand';
 import MapFile from '../../classes/MapFile';
 import MessageReplacer from '../../classes/MessageReplacer';
@@ -26,18 +26,16 @@ class AddCommand extends ChatInputSubCommand {
         return new SlashCommandSubcommandBuilder()
             .setName(this.name)
             .setDescription(this.description)
-            .addStringOption(option =>
-                option.setName(this.searchValueField)
+            .addStringOption(option => option.setName(this.searchValueField)
                 .setDescription("La valeur à remplacer")
                 .setRequired(true)
                 .setMaxLength(AddCommand.SEARCH_VALUE_MAX_LENGTH))
-            .addStringOption(option =>
-                option.setName(this.replaceValueField)
+            .addStringOption(option => option.setName(this.replaceValueField)
                 .setDescription("La valeur qui remplacera la valeur à remplacé")
                 .setRequired(true)
                 .setMaxLength(AddCommand.REPLACE_VALUE_MAX_LENGTH));
     }
-    
+
     execute(interaction: ChatInputCommandInteraction) {
         assert(interaction.guild !== null);
         let map = Util.getServerMap(interaction.guild.id);

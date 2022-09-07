@@ -1,4 +1,4 @@
-import { GuildMember, PermissionFlags, PermissionFlagsBits, PermissionResolvable, Permissions, PermissionsBitField, TextChannel, ThreadChannel, User, Webhook } from "discord.js";
+import { GuildMember, PermissionFlagsBits, PermissionResolvable, PermissionsBitField, TextChannel, ThreadChannel, User, Webhook } from "discord.js";
 import { resolve } from "path";
 import MapFile from "./MapFile";
 import SyncQueue from "./SyncQueue";
@@ -62,7 +62,7 @@ export default class Util {
         if (wh === undefined) {
             let avatar = channel.client.user?.avatarURL({ extension: "png" });
             if (avatar === null) avatar = undefined;
-            wh = await channel.createWebhook({ name: "Word replacer webhook", avatar: avatar});
+            wh = await channel.createWebhook({ name: "Word replacer webhook", avatar: avatar });
         }
         return wh;
     }

@@ -9,13 +9,13 @@ config({ path: resolve(__dirname, "../.env") });
 const commands: (Omit<SlashCommandBuilder, any> | ContextMenuCommandBuilder)[] = [];
 
 for (let cmd of botCommands) {
-	commands.push(cmd.getCommandBuilder());
+    commands.push(cmd.getCommandBuilder());
 }
 
 assert(process.env.BOT_TOKEN !== undefined);
 const rest = new REST({ version: '10' }).setToken(process.env.BOT_TOKEN);
 
-const client = new Client({intents: []});
+const client = new Client({ intents: [] });
 
 client.on("ready", () => {
     if (client.user === null) {
@@ -24,8 +24,8 @@ client.on("ready", () => {
     }
     console.log(`Connected as ${client.user.tag}, id: ${client.user.id}.`);
     rest.put(Routes.applicationCommands(client.user.id), { body: commands })
-	    .then(() => console.log(`Successfully registered ${commands.length} application commands.`))
-	    .catch(console.error);
+        .then(() => console.log(`Successfully registered ${commands.length} application commands.`))
+        .catch(console.error);
     client.destroy();
 });
 

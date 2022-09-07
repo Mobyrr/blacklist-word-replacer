@@ -20,14 +20,13 @@ class RemoveCommand extends ChatInputSubCommand {
         return new SlashCommandSubcommandBuilder()
             .setName(this.name)
             .setDescription(this.description)
-            .addStringOption(option =>
-                option.setName(this.searchValueField)
+            .addStringOption(option => option.setName(this.searchValueField)
                 .setDescription("La valeur qui ne doit plus être remplacé")
                 .setRequired(true)
                 .setMaxLength(RemoveCommand.SEARCH_VALUE_MAX_LENGTH)
                 .setAutocomplete(true));
     }
-    
+
     execute(interaction: ChatInputCommandInteraction) {
         assert(interaction.guild !== null);
         let map = Util.getServerMap(interaction.guild.id);

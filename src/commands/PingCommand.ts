@@ -14,7 +14,7 @@ class PingCommand extends ChatInputCommand {
             .setName(this.name)
             .setDescription(this.description);
     }
-    
+
     execute(interaction: ChatInputCommandInteraction): void {
         interaction.reply("Pong !");
     }

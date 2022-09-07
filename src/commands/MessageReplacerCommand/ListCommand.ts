@@ -16,7 +16,7 @@ class ListCommand extends ChatInputSubCommand {
             .setName(this.name)
             .setDescription(this.description);
     }
-    
+
     execute(interaction: ChatInputCommandInteraction) {
         assert(interaction.guild !== null && interaction.channel !== null);
         let map = Util.getServerMap(interaction.guild.id);
