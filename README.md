@@ -1,6 +1,7 @@
 # Blacklist-word-replacer
 
 Discord bot written in typescript to replace words
+[Invitation link](https://discord.com/api/oauth2/authorize?client_id=866337716995883009&permissions=275414789120&scope=bot%20applications.commands)
 
 ## Setup
 
